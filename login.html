@@ -1,0 +1,85 @@
+<div id="login-component" class="w-full flex flex-col items-center gap-6 animate-fade-in">
+  
+  <div class="w-full flex justify-between items-center px-2">
+    <div class="flex items-center gap-2 text-[#004b8d] text-2xl font-bold">
+      <i class="fa-solid fa-square-plus text-3xl"></i>
+      <span>PharmaLog</span>
+    </div>
+  </div>
+
+  <div class="text-center mt-2">
+    <h1 class="text-2xl font-bold text-slate-800">ยินดีต้อนรับกลับเข้าสู่ระบบ</h1>
+    <p class="text-xs text-slate-500 mt-1">เข้าสู่ระบบเพื่อจัดการบันทึกทางเภสัชกรรมและคลังสินค้าอย่างปลอดภัย</p>
+  </div>
+
+  <div class="bg-white w-full rounded-2xl p-6 shadow-sm border border-slate-100">
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1.5 flex items-center gap-1.5">
+          <i class="fa-regular fa-id-card text-xs"></i> รหัสพนักงาน หรือ อีเมล
+        </label>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+            <i class="fa-solid fa-user text-sm"></i>
+          </span>
+          <input type="text" id="username" required placeholder="เช่น staff@pharmalog.com" 
+                 class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#004b8d] bg-slate-50/50 text-sm">
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="flex justify-between items-center mb-1.5">
+          <label class="block text-sm font-medium flex items-center gap-1.5">
+            <i class="fa-solid fa-lock text-xs"></i> รหัสผ่านความปลอดภัย
+          </label>
+          <a href="#" class="text-xs text-[#004b8d] font-medium hover:underline">ลืมรหัสผ่าน?</a>
+        </div>
+        <div class="relative">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+            <i class="fa-solid fa-key text-sm"></i>
+          </span>
+          <input type="password" id="password" required placeholder="••••••••" 
+                 class="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-[#004b8d] bg-slate-50/50 text-sm">
+          <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 cursor-pointer" onclick="togglePassword()">
+            <i id="toggleIcon" class="fa-solid fa-eye"></i>
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center mb-6">
+        <input type="checkbox" id="remember" class="w-4 h-4 rounded text-[#004b8d] border-slate-300 focus:ring-[#004b8d] cursor-pointer">
+        <label for="remember" class="ml-2 text-sm text-slate-500 cursor-pointer select-none">จดจำเครื่องนี้ไว้</label>
+      </div>
+
+      <button type="submit" id="submitBtn"
+              class="w-full bg-[#004b8d] text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-[#003d73] transition-colors shadow-sm">
+        <span>เข้าสู่ระบบ</span>
+        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+      </button>
+    </form>
+  </div>
+
+  <div class="w-full flex flex-col gap-3">
+    <div class="bg-[#edf4ed] p-4 rounded-xl flex items-start gap-3 border border-slate-100/50">
+      <i class="fa-solid fa-shield-halved text-[#004b8d] mt-0.5"></i>
+      <div>
+        <h4 class="text-sm font-semibold text-slate-800">การเข้าถึงที่ปลอดภัย</h4>
+        <p class="text-xs text-slate-500">อาจต้องมีการยืนยันตัวตนหลายขั้นตอนสำหรับบางงาน</p>
+      </div>
+    </div>
+    <div class="bg-[#edf4ed] p-4 rounded-xl flex items-start gap-3 border border-slate-100/50">
+      <i class="fa-solid fa-circle-question text-[#004b8d] mt-0.5"></i>
+      <div>
+        <h4 class="text-sm font-semibold text-slate-800">ฝ่ายสนับสนุนไอที</h4>
+        <p class="text-xs text-slate-500">ติดต่อฝ่ายช่วยเหลือที่ต่อ 404 เพื่อขอความช่วยเหลือในการเข้าสู่ระบบ</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center text-sm mt-2">
+    <span class="text-slate-500">ยังไม่มีบัญชีผู้ใช้?</span>
+    <button onclick="navigateTo('register.html')" class="text-[#004b8d] font-bold hover:underline ml-1">สมัครสมาชิกใหม่</button>
+  </div>
+
+</div>
