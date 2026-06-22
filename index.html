@@ -146,6 +146,99 @@
       }
     }
 
+    /**
+     * ฟังก์ชันสั่งรันระบบปฏิทินที่ดึงมาจากไฟล์ schedule.html
+     */
+    function initDynamicCalendar() {
+      // ตรวจสอบว่ามีฟังก์ชันคำนวณปฏิทินที่ติดมากับสคริปต์ของ schedule.html อยู่จริงหรือไม่
+      if (typeof renderCalendar === 'function') {
+        // ใช้ตัวแปรเริ่มต้นในหน้าย่อย (ตุลาคม 2569 คือปี 2026 เดือน index 9)
+        renderCalendar(currentYear, currentMonth);
+      }
+    }
+
+    /**
+     * ระบบจัดการการเข้าสู่ระบบ (เชื่อม API doPost() ของ Standalone GAS)
+     */
+    async function handleLogin(e) {
+      e.preventDefault();
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+      const btn = document.getElementById('submitBtn');
+      
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> กำลังตรวจสอบ...`;
+
+      try {
+        const res = await fetch(GAS_WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "login", username: user, password: pass })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          // เก็บข้อมูลที่ได้จากแถวของ Google Sheet ลงในระบบความจำหน้าบ้าน
+          currentUser.name = data.employeeName;
+          currentUser.role = data.employeeRole;
+          
+          // เปลี่ยนหน้าเข้าไปยังตารางปฏิบัติงานเวรสำเร็จ 🎉
+          navigateTo('schedule.html');
+        } else {
+          alert(data.message);
+          btn.disabled = false;
+          btn.innerHTML = `<span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
+        }
+      } catch (err) {
+        alert("การเชื่อมโยงระบบคลาวด์ Apps Script ขัดข้อง กรุณาลองใหม่อีกครั้ง");
+        btn.disabled = false;
+        btn.innerHTML = `<span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
+      }
+    }
+
+    /**
+     * ระบบส่งข้อมูลลงทะเบียนบันทึกลง Google Sheet
+     */
+    async function handleRegister(e) {
+      e.preventDefault();
+      const fullName = document.getElementById('regFullName').value;
+      const email = document.getElementById('regEmail').value;
+      const role = document.getElementById('regRole').value;
+      const password = document.getElementById('regPassword').value;
+      const confirmPassword = document.getElementById('regConfirmPassword').value;
+      const btn = document.getElementById('regSubmitBtn');
+
+      if (password !== confirmPassword) {
+        alert("รหัสผ่านทั้งสองช่องไม่ตรงกัน!");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> กำลังบันทึก...`;
+
+      try {
+        const res = await fetch(GAS_WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action: "register", userData: { fullName, email, role, password } })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          alert(data.message);
+          navigateTo('login.html'); // สมัครเสร็จสิ้น ส่งกลับไปหน้าล็อกอินเพื่อเข้าใช้งานคราวต่อไป
+        } else {
+          alert(data.message);
+          btn.disabled = false;
+          btn.innerHTML = `<span>ลงทะเบียน</span> <i class="fa-solid fa-arrow-right"></i>`;
+        }
+      } catch (err) {
+        alert("เกิดข้อผิดพลาดในการติดต่อฐานข้อมูล");
+        btn.disabled = false;
+        btn.innerHTML = `<span>ลงทะเบียน</span> <i class="fa-solid fa-arrow-right"></i>`;
+      }
+    }
+    
     function handleLogout() {
       currentUser = { name: "", role: "" };
       navigateTo('login.html');
