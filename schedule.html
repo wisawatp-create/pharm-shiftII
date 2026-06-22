@@ -1,0 +1,234 @@
+<div id="schedule-component" class="w-full max-w-md bg-[#f4f9f4] flex flex-col p-2 text-slate-700 animate-fade-in">
+  
+  <div class="flex justify-between items-center mb-4 px-1">
+    <h2 class="text-xl font-bold text-[#004b8d]">ตารางเวร</h2>
+    <div class="flex gap-4 text-lg text-slate-500">
+      <i class="fa-solid fa-magnifying-glass cursor-pointer hover:text-[#004b8d] transition-colors"></i>
+      <i class="fa-solid fa-bell cursor-pointer hover:text-[#004b8d] transition-colors"></i>
+    </div>
+  </div>
+
+  <div class="bg-[#edf4ed] p-4 rounded-2xl flex justify-between items-center mb-4 border border-slate-100/70 shadow-sm">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 bg-[#004b8d] text-white rounded-full flex items-center justify-center font-bold shadow-sm">
+        <i class="fa-solid fa-user-nurse text-lg"></i>
+      </div>
+      <div>
+        <p class="text-[10px] text-slate-400 font-medium">เข้าสู่ระบบสำเร็จ</p>
+        <h3 class="text-sm font-bold text-slate-800 leading-tight"><?= employeeName ?></h3>
+        <span class="inline-block bg-[#004b8d]/10 text-[#004b8d] text-[10px] px-2 py-0.5 rounded-md font-semibold mt-0.5">
+          <?= employeeRole ?>
+        </span>
+      </div>
+    </div>
+    <button onclick="handleLogout()" class="w-8 h-8 bg-white hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-xl flex items-center justify-center border border-slate-200/60 shadow-sm transition-all">
+      <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+    </button>
+  </div>
+
+  <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex-1 flex flex-col mb-4">
+    
+    <div class="grid grid-cols-2 bg-slate-100 p-1 rounded-xl text-center text-xs font-semibold mb-4">
+      <button id="tab-month-current" onclick="changeMonthTab(2026, 9)" class="bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all">
+        ตุลาคม 2569
+      </button>
+      <button id="tab-month-next" onclick="changeMonthTab(2026, 10)" class="text-slate-400 py-2 rounded-lg transition-all hover:text-slate-600">
+        พฤศจิกายน 2569
+      </button>
+    </div>
+
+    <div class="flex justify-between items-center mb-3">
+      <h3 id="calendar-month-title" class="font-bold text-slate-800 text-sm">ตุลาคม 2569</h3>
+    </div>
+
+    <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
+      <div class="text-red-400">อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div class="text-teal-600">ส</div>
+    </div>
+
+    <div id="calendar-days-grid" class="grid grid-cols-7 gap-y-2.5 text-center text-sm font-semibold mb-4">
+      </div>
+
+    <hr class="border-slate-100 my-1">
+
+    <div class="flex gap-4 text-[10px] font-bold text-slate-400 mt-2 justify-center">
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-[#004b8d] rounded-full"></span>เวรเช้า</div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-teal-500 rounded-full"></span>เวรบ่าย</div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-red-500 rounded-full"></span>เวรดึก</div>
+    </div>
+  </div>
+
+  <div class="flex gap-2 mb-4 text-xs font-bold overflow-x-auto pb-1 select-none">
+    <div class="bg-[#004b8d] text-white px-4 py-2 rounded-full cursor-pointer shadow-xs whitespace-nowrap">ทั้งหมด</div>
+    <div class="bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full cursor-pointer hover:bg-slate-200 whitespace-nowrap">ชบด</div>
+    <div class="bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full cursor-pointer hover:bg-slate-200 whitespace-nowrap">บ่ายน้อย</div>
+    <div class="bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full cursor-pointer hover:bg-slate-200 whitespace-nowrap">SMC</div>
+  </div>
+
+  <div class="mb-2 flex justify-between items-center px-1">
+    <h4 class="text-xs font-bold text-slate-500">ข้อมูลเวรประจำวันที่เลือก</h4>
+    <span id="selected-date-label" class="text-xs font-bold text-[#004b8d] bg-[#004b8d]/5 px-2 py-0.5 rounded-md">เลือกวันที่</span>
+  </div>
+
+  <div class="bg-white rounded-2xl p-3 border-l-4 border-[#004b8d] shadow-xs border border-slate-100 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <div class="bg-slate-50 rounded-xl px-3 py-2 text-center border border-slate-100">
+        <p id="selected-day-th" class="text-[9px] text-slate-400 font-bold uppercase">-</p>
+        <p id="selected-day-num" class="text-base font-extrabold text-slate-700 leading-none mt-0.5">00</p>
+      </div>
+      <div>
+        <h4 id="duty-title" class="font-bold text-slate-800 text-sm">กรุณาเลือกวันที่ในปฏิทิน</h4>
+        <p id="duty-time" class="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
+          <i class="fa-regular fa-clock"></i> --:-- - --:--
+        </p>
+      </div>
+    </div>
+    <div id="duty-badge" class="w-8 h-8 bg-slate-100 text-slate-400 text-xs font-extrabold rounded-full flex items-center justify-center border border-slate-200/60">
+      -
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ตัวแปรเก็บสถานะเดือน/ปีปัจจุบันที่กำลังเปิด (Default เป็น ต.ค. 2026 ตามในภาพ)
+  let currentYear = 2026;
+  let currentMonth = 9; // 0 = มกราคม, 9 = ตุลาคม
+  let selectedDate = null;
+
+  const thaiMonths = [
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+    "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+  ];
+  const thaiDaysShort = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
+
+  // 🔴 จำลองข้อมูลตารางเวรที่ดึงมาจากระบบคลาวด์ (Key ในรูปแบบ YYYY-M-D เพื่อให้สอดคล้องกับลูปคำนวณ)
+  // ในอนาคตสามารถใช้ดึงข้อมูลจาก GAS เพิ่มเติมมาใส่แทนตัวแปรนี้ได้ครับ
+  const mockDuties = {
+    "2026-9-1": { type: "B", name: "เวรบ่าย (Afternoon Shift)", time: "04:00 PM - 12:00 AM", color: "bg-teal-500", badge: "A" },
+    "2026-9-3": { type: "C", name: "เวรเช้า (Morning Shift)", time: "08:00 AM - 04:00 PM", color: "bg-[#004b8d]", badge: "M" },
+    "2026-9-6": { type: "C", name: "เวรเช้า (Morning Shift)", time: "08:00 AM - 04:00 PM", color: "bg-[#004b8d]", badge: "M" },
+    "2026-9-8": { type: "D", name: "เวรดึก (Night Shift)", time: "12:00 AM - 08:00 AM", color: "bg-red-500", badge: "N" },
+    "2026-9-12": { type: "C", name: "เวรเช้า (Morning Shift)", time: "08:00 AM - 04:00 PM", color: "bg-[#004b8d]", badge: "M" }
+  };
+
+  // เรียกทำงานครั้งแรกสุดเมื่อหน้าจอนี้ถูกโหลดเข้ามา
+  renderCalendar(currentYear, currentMonth);
+
+  // ฟังก์ชันสลับแท็บเดือนด้านบน
+  function changeMonthTab(year, month) {
+    currentYear = year;
+    currentMonth = month;
+    
+    // จัดการ UI Active/Inactive แท็บปุ่มกด
+    const btnCurrent = document.getElementById('tab-month-current');
+    const btnNext = document.getElementById('tab-month-next');
+    
+    if (month === 9) {
+      btnCurrent.className = "bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all";
+      btnNext.className = "text-slate-400 py-2 rounded-lg transition-all hover:text-slate-600";
+    } else {
+      btnCurrent.className = "text-slate-400 py-2 rounded-lg transition-all hover:text-slate-600";
+      btnNext.className = "bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all";
+    }
+
+    renderCalendar(currentYear, currentMonth);
+  }
+
+  // ฟังก์ชันคำนวณและวาดตารางปฏิทินลงบนหน้าจอ
+  function renderCalendar(year, month) {
+    const gridContainer = document.getElementById('calendar-days-grid');
+    const titleContainer = document.getElementById('calendar-month-title');
+    gridContainer.innerHTML = ""; // ล้างข้อมูลเก่าออกก่อน
+
+    // แสดงหัวข้อเดือน พ.ศ. ให้ผู้ใช้เห็น
+    titleContainer.innerText = `${thaiMonths[month]} ${year + 543}`;
+
+    // หาวันแรกของเดือนว่าตรงกับวันใดในสัปดาห์ (0 = อาทิตย์, 1 = จันทร์, ...)
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    
+    // หาจำนวนวันทั้งหมดในเดือนนี้
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    
+    // หาจำนวนวันของเดือนก่อนหน้า สำหรับนำมาถมช่องว่างที่เหลือให้จางลงแบบในรูปภาพ
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+    // 1. ถมวันของเดือนก่อนหน้าที่เกินเข้ามา (ทำตัวหนังสือสีจาง)
+    for (let x = firstDayIndex; x > 0; x--) {
+      const dayNum = prevMonthTotalDays - x + 1;
+      gridContainer.innerHTML += `<div class="text-slate-200 py-1 select-none">${dayNum}</div>`;
+    }
+
+    // 2. วาดวันทั้งหมดของเดือนปัจจุบัน
+    for (let day = 1; day <= totalDays; day++) {
+      const dateKey = `${year}-${month}-${day}`;
+      const duty = mockDuties[dateKey];
+      
+      let dotHtml = "";
+      let classStyle = "py-1 cursor-pointer rounded-xl hover:bg-slate-100 transition-colors relative";
+
+      // ตรวจสอบว่าวันที่นั้นมีเวรอยู่หรือไม่ เพื่อนำจุดสีสัญลักษณ์มาจุดด้านล่างหลักหน่วยวัน
+      if (duty) {
+        dotHtml = `<span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 ${duty.color} rounded-full"></span>`;
+      }
+
+      // หากวันนั้นถูกเลือกอยู่ ให้ทำ UI Active ไฮไลท์วงทึบสีน้ำเงิน
+      if (selectedDate === dateKey) {
+        classStyle = "bg-[#004b8d] text-white rounded-xl py-1 shadow-sm font-bold cursor-pointer relative";
+        dotHtml = ""; // ซ่อนจุดชั่วคราวเพราะทับกับพื้นหลัง
+      }
+
+      // สร้างโหนดปุ่มกดวันที่ในปฏิทิน
+      gridContainer.innerHTML += `
+        <div class="${classStyle}" onclick="selectDate(${year}, ${month}, ${day})">
+          ${day}
+          ${dotHtml}
+        </div>
+      `;
+    }
+
+    // 3. ถมวันของเดือนถัดไปเพื่อให้เติมเต็มแถวตารางให้ครบสัปดาห์
+    const totalCells = firstDayIndex + totalDays;
+    const remainingCells = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= remainingCells; i++) {
+      gridContainer.innerHTML += `<div class="text-slate-200 py-1 select-none">${i}</div>`;
+    }
+  }
+
+  // ฟังก์ชันทำงานเมื่อคลิกเลือกวันที่ในปฏิทิน เพื่ออัปเดตแผงรายละเอียดเวรด้านล่างสุด
+  function selectDate(year, month, day) {
+    const dateKey = `${year}-${month}-${day}`;
+    selectedDate = dateKey;
+    
+    // ทำการวาดตารางใหม่เพื่อให้วันปัจจุบันแสดงสถานะวงสีน้ำเงินขึ้นมาไฮไลท์
+    renderCalendar(year, month);
+
+    // อัปเดตเลเบลตัวหนังสือกำกับวันที่
+    document.getElementById('selected-date-label').innerText = `${day} ${thaiMonths[month]} ${year + 543}`;
+    document.getElementById('selected-day-num').innerText = day < 10 ? '0' + day : day;
+    
+    const dayOfWeek = new Date(year, month, day).getDay();
+    document.getElementById('selected-day-th').innerText = thaiDaysShort[dayOfWeek];
+
+    // ค้นหารายละเอียดเวรของวันนั้นๆ
+    const duty = mockDuties[dateKey];
+    const titleEl = document.getElementById('duty-title');
+    const timeEl = document.getElementById('duty-time');
+    const badgeEl = document.getElementById('duty-badge');
+
+    if (duty) {
+      titleEl.innerText = duty.name;
+      timeEl.innerHTML = `<i class="fa-regular fa-clock"></i> ${duty.time}`;
+      badgeEl.innerText = duty.badge;
+      
+      // ปรับแต่งสี Badge ตัวย่อขวาขวา
+      badgeEl.className = `w-8 h-8 ${duty.color}/10 text-[11px] font-extrabold rounded-full flex items-center justify-center border border-${duty.color}/20`;
+      badgeEl.style.color = (duty.type === 'C') ? '#004b8d' : ''; 
+    } else {
+      // กรณีไม่มีเวรในวันที่กดเลือก
+      titleEl.innerText = "ไม่มีตารางปฏิบัติงานเวร";
+      timeEl.innerHTML = `<i class="fa-regular fa-clock"></i> --:-- - --:--`;
+      badgeEl.innerText = "-";
+      badgeEl.className = "w-8 h-8 bg-slate-100 text-slate-400 text-xs font-extrabold rounded-full flex items-center justify-center border border-slate-200/60";
+    }
+  }
+</script>
