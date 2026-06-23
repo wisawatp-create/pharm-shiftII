@@ -150,10 +150,13 @@
      * ฟังก์ชันสั่งรันระบบปฏิทินที่ดึงมาจากไฟล์ schedule.html
      */
     function initDynamicCalendar() {
-      // ตรวจสอบว่ามีฟังก์ชันคำนวณปฏิทินที่ติดมากับสคริปต์ของ schedule.html อยู่จริงหรือไม่
-      if (typeof renderCalendar === 'function') {
-        // ใช้ตัวแปรเริ่มต้นในหน้าย่อย (ตุลาคม 2569 คือปี 2026 เดือน index 9)
-        renderCalendar(currentYear, currentMonth);
+      // 🌟 บังคับเรียกฟังก์ชันตั้งค่าเริ่มต้นของหน้า schedule.html ที่ดึงมาจาก GitHub
+      if (typeof initComponent === 'function') {
+        initComponent();
+      } else if (typeof renderCalendar === 'function') {
+        // กรณีสำรองถ้าเรียกตรงๆ
+        const now = new Date();
+        renderCalendar(now.getFullYear(), now.getMonth());
       }
     }
 
