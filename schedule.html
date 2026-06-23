@@ -37,104 +37,84 @@
       </button>
     </div>
 
-    <div class="flex gap-2 mb-4 text-xs font-bold overflow-x-auto pb-1 select-none">
-      <!-- <div class="bg-[#004b8d] text-white px-4 py-2 rounded-full cursor-pointer shadow-xs whitespace-nowrap">ทั้งหมด</div> -->
-      <div class="bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full cursor-pointer hover:bg-slate-200 whitespace-nowrap">ชบด</div>
-      <div class="bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full cursor-pointer hover:bg-slate-200 whitespace-nowrap">บ่ายน้อย</div>
-      <div class="bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full cursor-pointer hover:bg-slate-200 whitespace-nowrap">SMC</div>
+    <div id="duty-type-tabs" class="flex gap-2 mb-4 text-xs font-bold overflow-x-auto pb-1 select-none">
+      <button onclick="changeDutyTypeTab('ชบด')" class="tab-item bg-[#004b8d] text-white px-4 py-2 rounded-full shadow-xs whitespace-nowrap transition-all">ชบด</button>
+      <button onclick="changeDutyTypeTab('บ่ายน้อย')" class="tab-item bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full whitespace-nowrap transition-all hover:bg-slate-200">บ่ายน้อย</button>
+      <button onclick="changeDutyTypeTab('SMC')" class="tab-item bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full whitespace-nowrap transition-all hover:bg-slate-200">SMC</button>
     </div>
 
     <div class="flex justify-between items-center mb-3">
-      <h3 id="calendar-month-title" class="font-bold text-slate-800 text-sm">ตุลาคม 2569</h3>
+      <h3 id="calendar-month-title" class="font-bold text-slate-800 text-sm">-</h3>
+      <span id="calendar-loading" class="text-[#004b8d] text-xs hidden animate-pulse">
+        <i class="fa-solid fa-spinner animate-spin"></i> กำลังโหลด...
+      </span>
     </div>
 
     <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
       <div class="text-red-400">อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div class="text-teal-600">ส</div>
     </div>
 
-    <div id="calendar-days-grid" class="grid grid-cols-7 gap-y-2.5 text-center text-sm font-semibold mb-4">
-      </div>
+    <div id="calendar-days-grid" class="grid grid-cols-7 gap-y-2.5 text-center text-sm font-semibold mb-4"></div>
 
     <hr class="border-slate-100 my-1">
 
     <div class="flex gap-4 text-[10px] font-bold text-slate-400 mt-2 justify-center">
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-[#004b8d] rounded-full"></span>เวรเช้า</div>
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-teal-500 rounded-full"></span>เวรบ่าย</div>
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-red-500 rounded-full"></span>เวรดึก</div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-[#004b8d] rounded-full"></span>ชบด</div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-teal-500 rounded-full"></span>บ่ายน้อย</div>
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-red-500 rounded-full"></span>SMC</div>
     </div>
   </div>
-
-  
 
   <div class="mb-2 flex justify-between items-center px-1">
     <h4 class="text-xs font-bold text-slate-500">ข้อมูลเวรประจำวันที่เลือก</h4>
     <span id="selected-date-label" class="text-xs font-bold text-[#004b8d] bg-[#004b8d]/5 px-2 py-0.5 rounded-md">เลือกวันที่</span>
   </div>
 
-  <div class="bg-white rounded-2xl p-3 border-l-4 border-[#004b8d] shadow-xs border border-slate-100 flex justify-between items-center">
-    <div class="flex items-center gap-3">
-      <div class="bg-slate-50 rounded-xl px-3 py-2 text-center border border-slate-100">
-        <p id="selected-day-th" class="text-[9px] text-slate-400 font-bold uppercase">-</p>
-        <p id="selected-day-num" class="text-base font-extrabold text-slate-700 leading-none mt-0.5">00</p>
-      </div>
-      <div>
-        <h4 id="duty-title" class="font-bold text-slate-800 text-sm">กรุณาเลือกวันที่ในปฏิทิน</h4>
-        <p id="duty-time" class="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1">
-          <i class="fa-regular fa-clock"></i> --:-- - --:--
-        </p>
-      </div>
-    </div>
-    <div id="duty-badge" class="w-8 h-8 bg-slate-100 text-slate-400 text-xs font-extrabold rounded-full flex items-center justify-center border border-slate-200/60">
-      -
+  <div id="duties-list-container" class="flex flex-col gap-3">
+    <div class="bg-white rounded-2xl p-4 text-center text-sm text-slate-400 border border-slate-100 shadow-sm">
+      กรุณาเลือกวันที่ในปฏิทินเพื่อดูรายชื่อผู้ปฏิบัติงาน
     </div>
   </div>
 
 </div>
 
 <script>
-  // 📅 1. คำนวณเดือนและปีปัจจุบัน และเดือนถัดไป จากระบบคอมพิวเตอร์แบบอัตโนมัติ
   const now = new Date();
   
-  // จัดเตรียมชุดตัวแปรของ 2 เดือนที่จะแสดงผลบนแท็บ
   const monthsConfig = [
     { 
       year: now.getFullYear(), 
-      month: now.getMonth(), 
-      label: "" // จะถูกใส่ชื่อเดือนไทยในฟังก์ชัน init
+      month: now.getMonth()
     },
     { 
       year: new Date(now.getFullYear(), now.getMonth() + 1, 1).getFullYear(), 
-      month: new Date(now.getFullYear(), now.getMonth() + 1, 1).getMonth(), 
-      label: ""
+      month: new Date(now.getFullYear(), now.getMonth() + 1, 1).getMonth()
     }
   ];
 
-  let activeMonthIndex = 0; // 0 = เดือนปัจจุบัน, 1 = เดือนถัดไป
-  let selectedDutyType = "ชบด"; // แถบประเภทเวรเริ่มต้น (ชบด / บ่ายน้อย / SMC)
+  let activeMonthIndex = 0; 
+  let selectedDutyType = "ชบด"; 
   let selectedDate = null;
   let serverDuties = {};
 
   const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
   const thaiDaysShort = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 
-  // เรียกทำงานโครงสร้างระบบปฏิทิน
   initComponent();
 
   function initComponent() {
-    // ดึงข้อมูลเดือนจริงมาแสดงบนปุ่มแท็บเลือกเดือนด้านบน พร้อมปี พ.ศ.
     const currentConfig = monthsConfig[0];
     const nextConfig = monthsConfig[1];
     
     document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
     document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
 
-    // 2. สั่งวาดโครงปฏิทินของเดือนปัจจุบันขึ้นมารอไว้ทันที (ผู้ใช้จะเห็นวันที่ขึ้นเลย)
     renderCalendar(currentConfig.year, currentConfig.month);
-    // โหลดข้อมูลเวรจาก Google Sheet ครั้งแรก
-    // fetchDutiesFromSheet();
+    
+    // 🛠️ ส่วนแก้ไขที่ 3: เปิดใช้งานฟังก์ชันดึงตารางเวรจาก Google Sheet ทันทีที่โหลดหน้าจอ
+    fetchDutiesFromSheet();
   }
 
-  // ฟังก์ชันสลับแท็บเดือน (0 = เดือนปัจจุบัน, 1 = เดือนถัดไป)
   function selectMonthTab(index) {
     activeMonthIndex = index;
     const btnCurrent = document.getElementById('btn-current-month');
@@ -148,36 +128,33 @@
       btnNext.className = "bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all font-bold";
     }
     
-    // ล้างวันที่ที่เคยเลือกค้างไว้เมื่อสลับเดือนเพื่อป้องกันข้อมูลเหลื่อมกัน
     selectedDate = null;
     resetDutyDetailCard();
     
-    // เรียกดึงข้อมูลชุดใหม่ของเดือนนั้นจากชีท
+    const targetTime = monthsConfig[activeMonthIndex];
+    renderCalendar(targetTime.year, targetTime.month);
     fetchDutiesFromSheet();
   }
 
-  // ฟังก์ชันสลับแท็บประเภทเวร (ตรงตามชื่อแผ่นงาน: ชบด / บ่ายน้อย / SMC)
   function changeDutyTypeTab(type) {
     selectedDutyType = type;
     
     const buttons = document.querySelectorAll('#duty-type-tabs .tab-item');
     buttons.forEach(btn => {
       if (btn.innerText === type) {
-        btn.className = "tab-item bg-[#004b8d] text-white px-4 py-2 rounded-full shadow-xs whitespace-nowrap";
+        btn.className = "tab-item bg-[#004b8d] text-white px-4 py-2 rounded-full shadow-xs whitespace-nowrap transition-all";
       } else {
-        btn.className = "tab-item bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full whitespace-nowrap";
+        btn.className = "tab-item bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full whitespace-nowrap transition-all hover:bg-slate-200";
       }
     });
     
     fetchDutiesFromSheet();
   }
 
-  // ฟังก์ชันดึงตารางเวรทั้งหมดของกลุ่มงานและประเภทเวรที่เลือกจาก Google Sheet
   async function fetchDutiesFromSheet() {
     const loadingEl = document.getElementById('calendar-loading');
     if(loadingEl) loadingEl.classList.remove('hidden');
     
-    // ดึงค่าปี ค.ศ. และ เดือน Index จาก Configuration ปัจจุบันที่เลือก
     const targetTime = monthsConfig[activeMonthIndex];
     
     try {
@@ -186,8 +163,8 @@
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ 
           action: "getDuties", 
-          userRole: currentUser.role,          // ระบุประเภทเพื่อเลือกไฟล์ Sheet (เช่น Pharmacist)
-          dutyType: selectedDutyType,          // ระบุชื่อแผ่นงานย่อย (ชบด / บ่ายน้อย / SMC)
+          userRole: currentUser.role,          
+          dutyType: selectedDutyType,          
           year: targetTime.year, 
           month: targetTime.month 
         })
@@ -196,10 +173,8 @@
       
       if (data.success) {
         serverDuties = data.duties;
-        // สั่งวาดปฏิทินประจำเดือนและปีจริงลงบนหน้าจอ
         renderCalendar(targetTime.year, targetTime.month);
         
-        // อัปเดตการ์ดรายละเอียดด้านล่าง (ถ้ามีการเลือกวันไว้)
         if(selectedDate) {
           const parts = selectedDate.split('-');
           selectDate(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
@@ -212,25 +187,22 @@
     }
   }
 
-  // ฟังก์ชันคำนวณ Grid วันที่ในสัปดาห์และวาดปฏิทิน
   function renderCalendar(year, month) {
     const gridContainer = document.getElementById('calendar-days-grid');
     const titleContainer = document.getElementById('calendar-month-title');
     if(!gridContainer) return;
     
     gridContainer.innerHTML = "";
-    titleContainer.innerText = `${thaiMonths[month]} ${year + 543}`; // แสดงหัวข้อ พ.ศ.
+    titleContainer.innerText = `${thaiMonths[month]} ${year + 543}`;
 
     const firstDayIndex = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
     const prevMonthTotalDays = new Date(year, month, 0).getDate();
 
-    // 1. วาดวันส่วนเกินของเดือนที่แล้ว (ตัวจาง)
     for (let x = firstDayIndex; x > 0; x--) {
       gridContainer.innerHTML += `<div class="text-slate-200 py-1 select-none font-medium">${prevMonthTotalDays - x + 1}</div>`;
     }
 
-    // 2. วาดวันในเดือนปัจจุบัน
     for (let day = 1; day <= totalDays; day++) {
       const dateKey = `${year}-${month}-${day}`;
       const dutiesList = serverDuties[dateKey];
@@ -239,7 +211,6 @@
       let classStyle = "py-1 cursor-pointer rounded-xl hover:bg-slate-100 transition-colors relative font-semibold";
 
       if (dutiesList && dutiesList.length > 0) {
-        // นำสีของเวรแรกมาจุดสัญลักษณ์ใต้ตัวเลข
         dotHtml = `<span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 ${dutiesList[0].color} rounded-full"></span>`;
       }
 
@@ -255,7 +226,6 @@
         </div>`;
     }
 
-    // 3. วาดวันส่วนเกินของเดือนถัดไปให้เต็มแถวตาราง
     const totalCells = firstDayIndex + totalDays;
     const remainingCells = (7 - (totalCells % 7)) % 7;
     for (let i = 1; i <= remainingCells; i++) {
@@ -263,7 +233,6 @@
     }
   }
 
-  // ฟังก์ชันแสดงรายการเวรของวันที่ถูกคลิกเลือก
   function selectDate(year, month, day) {
     const dateKey = `${year}-${month}-${day}`;
     selectedDate = dateKey;
@@ -273,6 +242,8 @@
 
     const dutiesList = serverDuties[dateKey] || [];
     const container = document.getElementById('duties-list-container');
+    if (!container) return;
+    
     container.innerHTML = "";
 
     if (dutiesList.length === 0) {
@@ -299,7 +270,7 @@
       }
 
       container.innerHTML += `
-        <div class="bg-white rounded-2xl p-3 border-l-4 border-${duty.badge === 'ชบด' ? '[#004b8d]' : duty.badge === 'บ่าย' ? 'teal-500' : 'red-500'} shadow-sm border border-slate-100 flex justify-between items-center">
+        <div class="bg-white rounded-2xl p-3 border-l-4 border-${duty.badge === 'ชบด' ? '[#004b8d]' : duty.badge === 'บ่าย' ? 'teal-500' : 'red-500'} shadow-sm border border-slate-100 flex justify-between items-center animate-fade-in">
           <div class="flex items-center gap-3">
             <div class="bg-slate-50 rounded-xl px-2.5 py-1.5 text-center border border-slate-100">
               <p class="text-[9px] text-slate-400 font-bold">${thaiDaysShort[new Date(year, month, day).getDay()]}</p>
@@ -317,13 +288,15 @@
     });
   }
 
-  // ฟังก์ชันรีเซ็ตค่าการ์ดรายละเอียดด้านล่างให้กลับไปสถานะเริ่มต้น
   function resetDutyDetailCard() {
     document.getElementById('selected-date-label').innerText = "เลือกวันที่";
-    document.getElementById('duties-list-container').innerHTML = `
-      <div class="bg-white rounded-2xl p-4 text-center text-sm text-slate-400 border border-slate-100 shadow-sm">
-        กรุณาเลือกวันที่บนปฏิทินเพื่อดูรายชื่อผู้ปฏิบัติงาน
-      </div>`;
+    const container = document.getElementById('duties-list-container');
+    if(container) {
+      container.innerHTML = `
+        <div class="bg-white rounded-2xl p-4 text-center text-sm text-slate-400 border border-slate-100 shadow-sm">
+          กรุณาเลือกวันที่ในปฏิทินเพื่อดูรายชื่อผู้ปฏิบัติงาน
+        </div>`;
+    }
   }
 
   function requestReplace(dateKey, targetUser) {
