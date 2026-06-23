@@ -29,11 +29,11 @@
   <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex-1 flex flex-col mb-4">
     
     <div class="grid grid-cols-2 bg-slate-100 p-1 rounded-xl text-center text-xs font-semibold mb-4">
-      <button id="tab-month-current" onclick="onclick="selectMonthTab(0)"" class="bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all">
-        ตุลาคม 2569
+      <button id="btn-current-month" onclick="selectMonthTab(0)" class="bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all font-bold">
+        กำลังโหลด...
       </button>
-      <button id="tab-month-next" onclick="onclick="selectMonthTab(1)"" class="text-slate-400 py-2 rounded-lg transition-all hover:text-slate-600">
-        พฤศจิกายน 2569
+      <button id="btn-next-month" onclick="selectMonthTab(1)" class="text-slate-400 py-2 rounded-lg transition-all hover:text-slate-600">
+        กำลังโหลด...
       </button>
     </div>
 
@@ -127,9 +127,11 @@
     
     document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
     document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
-    
+
+    // 2. สั่งวาดโครงปฏิทินของเดือนปัจจุบันขึ้นมารอไว้ทันที (ผู้ใช้จะเห็นวันที่ขึ้นเลย)
+    renderCalendar(currentConfig.year, currentConfig.month);
     // โหลดข้อมูลเวรจาก Google Sheet ครั้งแรก
-    fetchDutiesFromSheet();
+    // fetchDutiesFromSheet();
   }
 
   // ฟังก์ชันสลับแท็บเดือน (0 = เดือนปัจจุบัน, 1 = เดือนถัดไป)
