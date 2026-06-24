@@ -50,9 +50,16 @@
         if (pageName === 'schedule.html') {
           html = html.replace('<?= employeeName ?>', currentUser.name)
                      .replace('<?= employeeRole ?>', currentUser.role);
-        }
-
-        appContainer.innerHTML = html;
+          // วางเนื้อหา HTML ลงในหน้าจอหลัก (ซึ่งจะมีกล่อง "กำลังเตรียมระบบ" แสดงขึ้นมาทันที)
+          appContainer.innerHTML = html;
+          
+          // 🌟 หน่วงเวลา 200ms เพื่อให้ DOM โหลดครบถ้วนแน่นอน แล้วค่อยสั่งเปิดระบบปฏิทิน
+          setTimeout(() => {
+            initDynamicCalendar();
+          }, 200);
+        } else {
+          appContainer.innerHTML = html;
+        }        
       } catch (error) {
         appContainer.innerHTML = `<div class="text-center text-red-500"><i class="fa-solid fa-triangle-exclamation text-2xl"></i><p class="text-sm mt-2">${error.message}</p></div>`;
       }
