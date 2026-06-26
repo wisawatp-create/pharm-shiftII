@@ -4,7 +4,7 @@
     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center gap-3 w-4/5 max-w-xs animate-pulse">
       <i class="fa-solid fa-calendar-days text-[#004b8d] text-4xl animate-bounce"></i>
       <h3 class="text-sm font-bold text-slate-800">กำลังเตรียมระบบปฏิทิน</h3>
-      <p class="text-[11px] text-slate-400">กรุณารอสักครู่ ระบบกำลังจัดเตรียมข้อมูลวันเวลาและดึงตารางเวรจากกลุ่มงาน...</p>
+      <p class="text-[11px] text-slate-400">กรุณารอสักครู่ ระบบกำลังจัดเตรียมข้อมูลวันเวลา...</p>
     </div>
   </div>
 
@@ -58,19 +58,29 @@
       </span>
     </div>
 
-    <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
-      <div class="text-red-400">อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div class="text-teal-600">ส</div>
+    <div id="calendar-content-area" class="hidden flex-col flex-1">
+      <div class="grid grid-cols-7 text-center text-[11px] font-bold text-slate-400 mb-2">
+        <div class="text-red-400">อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div class="text-teal-600">ส</div>
+      </div>
+
+      <div id="calendar-days-grid" class="grid grid-cols-7 gap-y-2.5 text-center text-sm font-semibold mb-4"></div>
+
+      <hr class="border-slate-100 my-1">
+
+      <div class="flex gap-4 text-[10px] font-bold text-slate-400 mt-2 justify-center">
+        <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-[#004b8d] rounded-full"></span>ชบด</div>
+        <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-teal-500 rounded-full"></span>บ่ายน้อย</div>
+        <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-red-500 rounded-full"></span>SMC</div>
+      </div>
     </div>
 
-    <div id="calendar-days-grid" class="grid grid-cols-7 gap-y-2.5 text-center text-sm font-semibold mb-4"></div>
-
-    <hr class="border-slate-100 my-1">
-
-    <div class="flex gap-4 text-[10px] font-bold text-slate-400 mt-2 justify-center">
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-[#004b8d] rounded-full"></span>ชบด</div>
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-teal-500 rounded-full"></span>บ่ายน้อย</div>
-      <div class="flex items-center gap-1.5"><span class="w-2 h-2 bg-red-500 rounded-full"></span>SMC</div>
+    <div id="toggle-calendar-wrapper" class="flex flex-col items-center justify-center p-6 flex-1 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+      <i class="fa-regular fa-calendar-plus text-slate-300 text-3xl mb-2"></i>
+      <button id="btn-toggle-calendar" onclick="triggerShowCalendar()" class="bg-[#004b8d] hover:bg-[#003566] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition-all">
+        <i class="fa-solid fa-eye mr-1.5"></i> แสดงปฏิทินประจำเดือน
+      </button>
     </div>
+
   </div>
 
   <div class="mb-2 flex justify-between items-center px-1">
@@ -87,7 +97,6 @@
 </div>
 
 <script>
-  // ห่อหุ้มคำสั่งการเรียกทำงานเพื่อไม่ให้รบกวนกันในระดับ Global scope ของ SPA
   (function() {
     const now = new Date();
     
@@ -100,11 +109,11 @@
     let selectedDutyType = "ชบด"; 
     let selectedDate = null;
     let serverDuties = {};
+    let isCalendarExpanded = false; // ตัวแปรเก็บสถานะการแสดงปฏิทิน
 
     const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
     const thaiDaysShort = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 
-    // 💡 กลไกตรวจสอบการแสดงผล: ตั้งเวลาลูปเช็คความพร้อมของ Element หากพร้อมแล้วให้รันทันที
     const checkDOMInterval = setInterval(() => {
       if (document.getElementById('btn-current-month') && document.getElementById('calendar-days-grid')) {
         clearInterval(checkDOMInterval);
@@ -119,13 +128,10 @@
       document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
       document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
 
-      // 1. วาดเลขวันที่ขึ้นหน้าจอให้พร้อมทันที
-      renderCalendar(currentConfig.year, currentConfig.month);
+      // อัปเดตเฉพาะหัวข้อเดือนด้านล่าง แต่ยังไม่วาดตารางและยังไม่ดึงข้อมูลจนกว่าจะกดปุ่ม
+      const targetTime = monthsConfig[activeMonthIndex];
+      document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;
       
-      // 2. ดึงตารางข้อมูลภาระงานจากฐานข้อมูลชีท
-      fetchDutiesFromSheet();
-      
-      // 3. ปิดกล่อง Overlay แจ้งเตือน "กำลังเตรียมระบบ" ออกไปอย่างนุ่มนวล
       const prepLoader = document.getElementById('system-prep-loader');
       if (prepLoader) {
         prepLoader.style.opacity = '0';
@@ -133,7 +139,21 @@
       }
     }
 
-    // ทำการผูกฟังก์ชันย่อยเข้ากับ Window Object เพื่อให้ HTML ด้านบนเรียกหาเจอ
+    // ฟังก์ชันสำหรับกดปุ่ม "แสดงปฏิทินประจำเดือน"
+    window.triggerShowCalendar = function() {
+      isCalendarExpanded = true;
+      
+      // ซ่อนปุ่มเปิด และแสดงพื้นที่ปฏิทิน
+      document.getElementById('toggle-calendar-wrapper').classList.add('hidden');
+      document.getElementById('calendar-content-area').classList.remove('hidden');
+      document.getElementById('calendar-content-area').classList.add('flex');
+      
+      // ดำเนินการวาดและดึงข้อมูลจากชีททันที
+      const targetTime = monthsConfig[activeMonthIndex];
+      renderCalendar(targetTime.year, targetTime.month);
+      fetchDutiesFromSheet();
+    };
+
     window.selectMonthTab = function(index) {
       activeMonthIndex = index;
       const btnCurrent = document.getElementById('btn-current-month');
@@ -151,8 +171,13 @@
       resetDutyDetailCard();
       
       const targetTime = monthsConfig[activeMonthIndex];
-      renderCalendar(targetTime.year, targetTime.month);
-      fetchDutiesFromSheet();
+      document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;
+
+      // ถ้าปฏิทินถูกเปิดอยู่แล้ว ให้ดึงข้อมูลและวาดใหม่ทันที แต่ถ้ายังไม่เปิด ก็ปล่อยให้ซ่อนไว้เหมือนเดิม
+      if (isCalendarExpanded) {
+        renderCalendar(targetTime.year, targetTime.month);
+        fetchDutiesFromSheet();
+      }
     };
 
     window.changeDutyTypeTab = function(type) {
@@ -165,10 +190,15 @@
           btn.className = "tab-item bg-slate-200/60 text-slate-500 px-4 py-2 rounded-full whitespace-nowrap transition-all hover:bg-slate-200";
         }
       });
-      fetchDutiesFromSheet();
+      
+      if (isCalendarExpanded) {
+        fetchDutiesFromSheet();
+      }
     };
 
     async function fetchDutiesFromSheet() {
+      if (!isCalendarExpanded) return;
+      
       const loadingEl = document.getElementById('calendar-loading');
       if(loadingEl) loadingEl.classList.remove('hidden');
       const targetTime = monthsConfig[activeMonthIndex];
@@ -198,18 +228,16 @@
         }
       } catch (err) {
         console.error("การโหลดข้อมูลขัดข้อง:", err);
-      } finally {
+      } Transformer: finally {
         if(loadingEl) loadingEl.classList.add('hidden');
       }
     }
 
     function renderCalendar(year, month) {
       const gridContainer = document.getElementById('calendar-days-grid');
-      const titleContainer = document.getElementById('calendar-month-title');
-      if(!gridContainer) return;
+      if(!gridContainer || !isCalendarExpanded) return;
       
       gridContainer.innerHTML = "";
-      titleContainer.innerText = `${thaiMonths[month]} ${year + 543}`;
 
       const firstDayIndex = new Date(year, month, 1).getDay();
       const totalDays = new Date(year, month + 1, 0).getDate();
