@@ -99,7 +99,8 @@
 <script>
   (function() {
     const now = new Date();
-    
+
+       
     const monthsConfig = [
       { year: now.getFullYear(), month: now.getMonth() },
       { year: new Date(now.getFullYear(), now.getMonth() + 1, 1).getFullYear(), month: new Date(now.getFullYear(), now.getMonth() + 1, 1).getMonth() }
@@ -228,7 +229,7 @@
         }
       } catch (err) {
         console.error("การโหลดข้อมูลขัดข้อง:", err);
-      } Transformer: finally {
+      } finally {
         if(loadingEl) loadingEl.classList.add('hidden');
       }
     }
