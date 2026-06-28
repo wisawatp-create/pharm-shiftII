@@ -33,6 +33,15 @@
     // ตัวแปรส่วนกลางสำหรับจำลอง Session หลัง Login สำเร็จ
     let currentUser = { name: "", role: "" };
 
+    // 🔥 [เพิ่มใหม่] คำนวณหาเดือนปัจจุบันและเดือนถัดไปไว้รอเลยตั้งแต่โหลดหน้าแรก
+    const now = new Date();
+    const globalMonthsConfig = [
+      { year: now.getFullYear(), month: now.getMonth() },
+      { year: new Date(now.getFullYear(), now.getMonth() + 1, 1).getFullYear(), month: new Date(now.getFullYear(), now.getMonth() + 1, 1).getMonth() }
+    ];
+    const globalThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    const globalThaiDaysShort = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
+
     // เรียกทำงานเมื่อโหลดหน้าเว็บครั้งแรก ให้ไปหน้า Login
     window.addEventListener('DOMContentLoaded', () => {
       navigateTo('login.html');
