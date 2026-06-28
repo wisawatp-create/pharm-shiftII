@@ -61,10 +61,6 @@
                      .replace('<?= employeeRole ?>', currentUser.role);
           // วางเนื้อหา HTML ลงในหน้าจอหลัก (ซึ่งจะมีกล่อง "กำลังเตรียมระบบ" แสดงขึ้นมาทันที)
           appContainer.innerHTML = html;
-
-          // 🔥 เพิ่มบรรทัดนี้: เมื่อเอา HTML ลงจอเสร็จ ให้สั่งรันระบบปฏิทินทันที ไม่ต้องใช้ setInterval รอ
-          initDynamicCalendar();
-          
         } else {
           appContainer.innerHTML = html;
         }        
@@ -161,21 +157,7 @@
       }
     }
 
-    /**
-     * ฟังก์ชันสั่งรันระบบปฏิทินที่ดึงมาจากไฟล์ schedule.html
-     */
-    function initDynamicCalendar() {
-      // 🌟 บังคับเรียกฟังก์ชันตั้งค่าเริ่มต้นของหน้า schedule.html ที่ดึงมาจาก GitHub
-      if (typeof initComponent === 'function') {
-        initComponent();
-      } else if (typeof renderCalendar === 'function') {
-        // กรณีสำรองถ้าเรียกตรงๆ
-        const now = new Date();
-        renderCalendar(now.getFullYear(), now.getMonth());
-      }
-    }
-
-    /**
+     /**
      * ระบบจัดการการเข้าสู่ระบบ (เชื่อม API doPost() ของ Standalone GAS)
      */
     async function handleLogin(e) {
