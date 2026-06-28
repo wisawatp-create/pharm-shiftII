@@ -111,14 +111,16 @@
   function initComponent() {
     const currentConfig = monthsConfig[0];
     const nextConfig = monthsConfig[1];
-    
+    console.log("=== เริ่มทำงาน initComponent ===");
     if (!currentConfig || !nextConfig) return; // ป้องกันกรณีดึงค่าโกลบอลไม่สำเร็จ
 
     document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
     document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
-
+    
+    console.log("เช็ก element prepLoader:", prepLoader);
     const prepLoader = document.getElementById('system-prep-loader');
     if (prepLoader) {
+      console.log("กำลังจะสั่งซ่อน prepLoader...");
       prepLoader.style.opacity = '0';
       setTimeout(() => prepLoader.classList.add('hidden'), 100);
     }
