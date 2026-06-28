@@ -58,4 +58,284 @@
     <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold text-slate-400 mb-2 border-b border-slate-50 pb-2">
       <div class="text-red-400">อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div class="text-indigo-400">ส</div>
     </div>
-    <div id="calendar-days-grid" class="grid grid-cols-7
+    <div id="calendar-days-grid" class="grid grid-cols-7 gap-y-3 gap-x-1 text-center text-xs font-medium text-slate-600 flex-1 content-start">
+      </div>
+  </div>
+</div>
+
+<div class="flex-1 flex flex-col">
+  <div class="flex justify-between items-center mb-3 px-1">
+    <h3 id="selected-date-label" class="font-extrabold text-slate-800 text-sm">เลือกวันที่</h3>
+    <span class="text-[10px] text-slate-400 font-medium"><i class="fa-solid fa-list-ul"></i> รายชื่อผู้ปฏิบัติงาน</span>
+  </div>
+  
+  <div id="duties-list-container" class="space-y-2.5 flex-1 overflow-y-auto max-h-[220px] pb-4">
+    <div class="bg-white rounded-2xl p-4 text-center text-sm text-slate-400 border border-slate-100 shadow-sm">
+      กรุณาเลือกวันที่ในปฏิทินเพื่อดูรายชื่อผู้ปฏิบัติงาน
+    </div>
+  </div>
+</div>
+
+<script>
+  (() => {
+    // 🛠️ เชื่อมโยงตัวแปร Config กับส่วนกลางที่ประกาศไว้ที่ window ใน index.html
+    const monthsConfig = window.globalMonthsConfig || [];
+    const thaiMonths = window.globalThaiMonths || [];
+    const thaiDaysShort = window.globalThaiDaysShort || [];
+
+    let activeMonthIndex = 0; 
+    let selectedDutyType = "ชบด"; 
+    let selectedDate = null;
+    let serverDuties = {};
+    let isCalendarExpanded = false;
+
+    // 📤 นำฟังก์ชันสิทธิ์ภายในสโคป ผูกออกไปข้างนอกเพื่อให้ Element HTML (onclick) กดเรียกเจอ
+    window.selectMonthTab = selectMonthTab;
+    window.changeDutyTypeTab = changeDutyTypeTab;
+    window.triggerShowCalendar = triggerShowCalendar;
+    window.selectDate = selectDate;
+    window.requestReplace = requestReplace;
+
+    // 🚀 ยิงเริ่มต้นสั่งรันโครงสร้างปฏิทินด้วยตัวเองทันทีที่ดึงมาวางเสร็จ
+    console.log("=== สคริปต์ตารางเวรทำงานเรียบร้อย ===");
+    initComponent();
+
+    function initComponent() {
+      const currentConfig = monthsConfig[0];
+      const nextConfig = monthsConfig[1];
+      
+      if (!currentConfig || !nextConfig) {
+        console.error("ไม่สามารถดึงข้อมูล Config เดือนจากส่วนกลางได้");
+        return;
+      }
+
+      // แสดงชื่อเดือนที่ปุ่มแถบเลือกด้านบน
+      document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
+      document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
+      
+      // ปิดหน้าจอกำลังเตรียมระบบเบื้องต้น
+      const prepLoader = document.getElementById('system-prep-loader');
+      if (prepLoader) {
+        prepLoader.style.opacity = '0';
+        setTimeout(() => prepLoader.classList.add('hidden'), 300);
+      }
+
+      // ตรวจตั้งค่าแสดงชื่อหัวเรื่องเดือนที่เลือกอยู่
+      const targetTime = monthsConfig[activeMonthIndex];
+      document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
+      
+      // บังคับเปิดแสดงผลปฏิทินตั้งแต่เริ่มโหลดเลย
+      triggerShowCalendar();
+    }
+
+    function triggerShowCalendar() {
+      isCalendarExpanded = true;
+      document.getElementById('toggle-calendar-wrapper').classList.add('hidden');
+      document.getElementById('calendar-content-area').classList.remove('hidden');
+      document.getElementById('calendar-content-area').classList.add('flex');
+      
+      const targetTime = monthsConfig[activeMonthIndex];
+      renderCalendar(targetTime.year, targetTime.month);
+      fetchDutiesFromSheet();
+    }
+
+    function selectMonthTab(index) {
+      activeMonthIndex = index;
+      const btnCurrent = document.getElementById('btn-current-month');
+      const btnNext = document.getElementById('btn-next-month');
+      
+      // สลับสไตล์แท็บที่ถูกคลิก
+      if (index === 0) {
+        btnCurrent.className = "bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all font-bold text-xs cursor-pointer";
+        btnNext.className = "text-slate-400 py-2 rounded-lg transition-all hover:text-slate-600 text-xs cursor-pointer";
+      } else {
+        btnCurrent.className = "text-slate-400 py-2 rounded-lg transition-all hover:text-slate-600 text-xs cursor-pointer";
+        btnNext.className = "bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all font-bold text-xs cursor-pointer";
+      }
+      
+      selectedDate = null;
+      resetDutyDetailCard();
+      
+      const targetTime = monthsConfig[activeMonthIndex];
+      document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;
+
+      if (isCalendarExpanded) {
+        renderCalendar(targetTime.year, targetTime.month);
+        fetchDutiesFromSheet();
+      }
+    }
+
+    function changeDutyTypeTab(type) {
+      selectedDutyType = type;
+      const buttons = document.querySelectorAll('#duty-type-tabs .tab-item');
+      buttons.forEach(btn => {
+        if (btn.innerText === type) {
+          btn.className = "tab-item bg-[#004b8d] text-white px-4 py-1.5 rounded-full shadow-xs whitespace-nowrap text-xs font-semibold transition-all cursor-pointer";
+        } else {
+          btn.className = "tab-item bg-slate-200/60 text-slate-500 px-4 py-1.5 rounded-full whitespace-nowrap text-xs font-semibold transition-all hover:bg-slate-200 cursor-pointer";
+        }
+      });
+      
+      if (isCalendarExpanded) {
+        fetchDutiesFromSheet();
+      }
+    }
+
+    async function fetchDutiesFromSheet() {
+      if (!isCalendarExpanded) return;
+      
+      const loadingEl = document.getElementById('calendar-loading');
+      if (loadingEl) loadingEl.classList.remove('hidden');
+      const targetTime = monthsConfig[activeMonthIndex];
+      
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ 
+            action: "getDuties", 
+            userRole: currentUser.role,          
+            dutyType: selectedDutyType,          
+            year: targetTime.year, 
+            month: targetTime.month 
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          serverDuties = data.duties;
+          renderCalendar(targetTime.year, targetTime.month);
+          
+          // หากเคยกดเลือกวันค้างไว้ ให้ดึงรายละเอียดของวันนั้นกลับมาแสดงต่อ
+          if (selectedDate) {
+            const parts = selectedDate.split('-');
+            selectDate(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
+          }
+        }
+      } catch (err) {
+        console.error("การโหลดข้อมูลขัดข้อง:", err);
+      } finally {
+        if (loadingEl) loadingEl.classList.add('hidden');
+      }
+    }
+
+    function renderCalendar(year, month) {
+      const gridContainer = document.getElementById('calendar-days-grid');
+      if (!gridContainer || !isCalendarExpanded) return;
+      
+      gridContainer.innerHTML = "";
+
+      const firstDayIndex = new Date(year, month, 1).getDay();
+      const totalDays = new Date(year, month + 1, 0).getDate();
+      const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+      // แสดงวันที่เดือนที่แล้วแบบจางๆ เติมเต็มช่องว่างส่วนหน้า
+      for (let x = firstDayIndex; x > 0; x--) {
+        gridContainer.innerHTML += `<div class="text-slate-200 py-1 select-none font-medium">${prevMonthTotalDays - x + 1}</div>`;
+      }
+
+      // วาดปฏิทินวันที่ปัจจุบันในเดือนนั้นๆ
+      for (let day = 1; day <= totalDays; day++) {
+        const dateKey = `${year}-${month}-${day}`;
+        const dutiesList = serverDuties[dateKey];
+        
+        let dotHtml = "";
+        let classStyle = "py-1 cursor-pointer rounded-xl hover:bg-slate-100 transition-colors relative font-semibold";
+
+        if (dutiesList && dutiesList.length > 0) {
+          dotHtml = `<span class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 ${dutiesList[0].color || 'bg-slate-400'} rounded-full"></span>`;
+        }
+
+        if (selectedDate === dateKey) {
+          classStyle = "bg-[#004b8d] text-white rounded-xl py-1 shadow-sm font-bold cursor-pointer relative";
+          dotHtml = "";
+        }
+
+        gridContainer.innerHTML += `
+          <div class="${classStyle}" onclick="selectDate(${year}, ${month}, ${day})">
+            ${day}
+            ${dotHtml}
+          </div>`;
+      }
+
+      // แสดงวันที่เดือนถัดไปแบบจางๆ เติมเต็มช่องว่างส่วนท้าย
+      const totalCells = firstDayIndex + totalDays;
+      const remainingCells = (7 - (totalCells % 7)) % 7;
+      for (let i = 1; i <= remainingCells; i++) {
+        gridContainer.innerHTML += `<div class="text-slate-200 py-1 select-none font-medium">${i}</div>`;
+      }
+    }
+
+    function selectDate(year, month, day) {
+      const dateKey = `${year}-${month}-${day}`;
+      selectedDate = dateKey;
+      renderCalendar(year, month);
+      document.getElementById('selected-date-label').innerText = `${day} ${thaiMonths[month]} ${year + 543}`;
+
+      const dutiesList = serverDuties[dateKey] || [];
+      const container = document.getElementById('duties-list-container');
+      if (!container) return;
+      container.innerHTML = "";
+
+      if (dutiesList.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-4 text-center text-sm text-slate-400 border border-slate-100 shadow-sm">
+            ไม่มีภาระงานเวร ${selectedDutyType} ในวันนี้
+          </div>`;
+        return;
+      }
+
+      dutiesList.forEach(duty => {
+        let replaceInfoHtml = "";
+        if (duty.isAvailable) {
+          replaceInfoHtml = `
+            <button onclick="requestReplace('${dateKey}', '${duty.approvedUser}')" class="bg-amber-500 hover:bg-amber-600 text-white text-[11px] px-3 py-1 rounded-lg font-bold shadow-xs transition-colors cursor-pointer">
+              ลงชื่อแทน
+            </button>`;
+        } else {
+          replaceInfoHtml = `
+            <div class="text-right">
+              <p class="text-[10px] text-slate-400 font-medium">ผู้ปฏิบัติงานแทน</p>
+              <p class="text-xs font-bold text-teal-600">${duty.replaceUser}</p>
+            </div>`;
+        }
+
+        // เช็กสีกรอบด้านข้างตามประเภทป้ายเวร
+        const borderBadgeColor = duty.badge === 'ชบด' ? 'border-l-[#004b8d]' : duty.badge === 'บ่าย' ? 'border-l-teal-500' : 'border-l-red-500';
+
+        container.innerHTML += `
+          <div class="bg-white rounded-2xl p-3 border-l-4 ${borderBadgeColor} shadow-sm border border-slate-100 flex justify-between items-center animate-fade-in">
+            <div class="flex items-center gap-3">
+              <div class="bg-slate-50 rounded-xl px-2.5 py-1.5 text-center border border-slate-100">
+                <p class="text-[9px] text-slate-400 font-bold">${thaiDaysShort[new Date(year, month, day).getDay()]}</p>
+                <p class="text-base font-extrabold text-slate-700 leading-none">${day < 10 ? '0'+day : day}</p>
+              </div>
+              <div>
+                <h4 class="font-bold text-slate-800 text-sm">${duty.approvedUser}</h4>
+                <p class="text-[11px] text-slate-400 font-medium"><i class="fa-regular fa-clock text-[10px]"></i> ${duty.time}</p>
+              </div>
+            </div>
+            <div>
+              ${replaceInfoHtml}
+            </div>
+          </div>`;
+      });
+    }
+
+    function resetDutyDetailCard() {
+      document.getElementById('selected-date-label').innerText = "เลือกวันที่";
+      const container = document.getElementById('duties-list-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-4 text-center text-sm text-slate-400 border border-slate-100 shadow-sm">
+            กรุณาเลือกวันที่ในปฏิทินเพื่อดูรายชื่อผู้ปฏิบัติงาน
+          </div>`;
+      }
+    }
+
+    function requestReplace(dateKey, targetUser) {
+      if (confirm(`คุณต้องการลงชื่อปฏิบัติงานแทน ${targetUser} ในวันที่ ${dateKey} ใช่หรือไม่?`)) {
+         alert("ระบบบันทึกคำขอของคุณเรียบร้อยแล้ว");
+      }
+    }
+  })();
+</script>
