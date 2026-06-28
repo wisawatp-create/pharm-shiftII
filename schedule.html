@@ -108,7 +108,7 @@
   let isCalendarExpanded = false;
 
   // ฟังก์ชันนี้จะถูกเรียกโดยตรงจาก index.html ทันทีที่โหลดหน้าเสร็จ
-  window.initComponent = function() {
+  function initComponent() {
     const currentConfig = monthsConfig[0];
     const nextConfig = monthsConfig[1];
     
@@ -127,7 +127,7 @@
     document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
     
     // (หากต้องการให้แสดงปฏิทินทันทีโดยไม่ต้องกดปุ่ม ให้เปิดคอมเมนต์บรรทัดล่างนี้)
-    window.triggerShowCalendar();
+    triggerShowCalendar();
     // 🔥 [เพิ่มส่วนนี้กลับมา] สั่งให้ตัวเองรันทันทีหลังจากบราวเซอร์อ่านสคริปต์แผ่นนี้เสร็จ
     // โดยใช้ Interval สั้นๆ วนเช็กจนกว่าปุ่มบนหน้าจอจะพร้อมใช้งานจริง
     const checkDOMReady = setInterval(() => {
@@ -139,7 +139,7 @@
     
   }
 
-  window.triggerShowCalendar = function() {
+  function triggerShowCalendar() {
     isCalendarExpanded = true;
     document.getElementById('toggle-calendar-wrapper').classList.add('hidden');
     document.getElementById('calendar-content-area').classList.remove('hidden');
@@ -150,7 +150,7 @@
     fetchDutiesFromSheet();
   };
 
-  window.selectMonthTab = function(index) {
+  function selectMonthTab(index) {
     activeMonthIndex = index;
     const btnCurrent = document.getElementById('btn-current-month');
     const btnNext = document.getElementById('btn-next-month');
@@ -175,7 +175,7 @@
     }
   };
 
-  window.changeDutyTypeTab = function(type) {
+  function changeDutyTypeTab(type) {
     selectedDutyType = type;
     const buttons = document.querySelectorAll('#duty-type-tabs .tab-item');
     buttons.forEach(btn => {
@@ -272,7 +272,7 @@
     }
   }
 
-  window.selectDate = function(year, month, day) {
+  function selectDate(year, month, day) {
     const dateKey = `${year}-${month}-${day}`;
     selectedDate = dateKey;
     renderCalendar(year, month);
@@ -336,7 +336,7 @@
     }
   }
 
-  window.requestReplace = function(dateKey, targetUser) {
+  function requestReplace(dateKey, targetUser) {
     if(confirm(`คุณต้องการลงชื่อปฏิบัติงานแทน ${targetUser} ในวันที่ ${dateKey} ใช่หรือไม่?`)) {
        alert("ระบบบันทึกคำขอของคุณเรียบร้อยแล้ว");
     }
