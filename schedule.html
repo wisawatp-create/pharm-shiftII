@@ -129,15 +129,14 @@
       document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
       document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
 
-      // อัปเดตเฉพาะหัวข้อเดือนด้านล่าง แต่ยังไม่วาดตารางและยังไม่ดึงข้อมูลจนกว่าจะกดปุ่ม
-      const targetTime = monthsConfig[activeMonthIndex];
-      document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;
-      
       const prepLoader = document.getElementById('system-prep-loader');
       if (prepLoader) {
         prepLoader.style.opacity = '0';
         setTimeout(() => prepLoader.classList.add('hidden'), 300);
       }
+      // อัปเดตเฉพาะหัวข้อเดือนด้านล่าง แต่ยังไม่วาดตารางและยังไม่ดึงข้อมูลจนกว่าจะกดปุ่ม
+      const targetTime = monthsConfig[activeMonthIndex];
+      document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
     }
 
     // ฟังก์ชันสำหรับกดปุ่ม "แสดงปฏิทินประจำเดือน"
