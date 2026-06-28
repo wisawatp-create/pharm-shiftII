@@ -107,6 +107,13 @@
   let serverDuties = {};
   let isCalendarExpanded = false;
 
+  if (typeof initComponent === 'function') {
+    initComponent();
+  } else if (typeof renderCalendar === 'function') {
+    const now = new Date();
+    renderCalendar(now.getFullYear(), now.getMonth());
+  }
+
   // ฟังก์ชันนี้จะถูกเรียกโดยตรงจาก index.html ทันทีที่โหลดหน้าเสร็จ
   function initComponent() {
     const currentConfig = monthsConfig[0];
