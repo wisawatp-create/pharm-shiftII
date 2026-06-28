@@ -53,10 +53,6 @@
           // วางเนื้อหา HTML ลงในหน้าจอหลัก (ซึ่งจะมีกล่อง "กำลังเตรียมระบบ" แสดงขึ้นมาทันที)
           appContainer.innerHTML = html;
           
-          // 🌟 หน่วงเวลา 200ms เพื่อให้ DOM โหลดครบถ้วนแน่นอน แล้วค่อยสั่งเปิดระบบปฏิทิน
-          setTimeout(() => {
-            initDynamicCalendar();
-          }, 200);
         } else {
           appContainer.innerHTML = html;
         }        
