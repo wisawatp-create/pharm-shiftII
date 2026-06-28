@@ -106,7 +106,7 @@
   let selectedDate = null;
   let serverDuties = {};
   let isCalendarExpanded = false;
-
+  console.log("เช็กจุดโหลด:", typeof initComponent);
   if (typeof initComponent === 'function') {
     initComponent();
   } else if (typeof renderCalendar === 'function') {
