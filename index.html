@@ -61,6 +61,9 @@
                      .replace('<?= employeeRole ?>', currentUser.role);
           // วางเนื้อหา HTML ลงในหน้าจอหลัก (ซึ่งจะมีกล่อง "กำลังเตรียมระบบ" แสดงขึ้นมาทันที)
           appContainer.innerHTML = html;
+
+          // 🔥 เพิ่มบรรทัดนี้: เมื่อเอา HTML ลงจอเสร็จ ให้สั่งรันระบบปฏิทินทันที ไม่ต้องใช้ setInterval รอ
+          initDynamicCalendar();
           
         } else {
           appContainer.innerHTML = html;
