@@ -127,7 +127,7 @@
     document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
     
     // (หากต้องการให้แสดงปฏิทินทันทีโดยไม่ต้องกดปุ่ม ให้เปิดคอมเมนต์บรรทัดล่างนี้)
-    triggerShowCalendar();
+    window.triggerShowCalendar();
     // 🔥 [เพิ่มส่วนนี้กลับมา] สั่งให้ตัวเองรันทันทีหลังจากบราวเซอร์อ่านสคริปต์แผ่นนี้เสร็จ
     // โดยใช้ Interval สั้นๆ วนเช็กจนกว่าปุ่มบนหน้าจอจะพร้อมใช้งานจริง
     const checkDOMReady = setInterval(() => {
