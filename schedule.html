@@ -137,6 +137,10 @@
       // อัปเดตเฉพาะหัวข้อเดือนด้านล่าง แต่ยังไม่วาดตารางและยังไม่ดึงข้อมูลจนกว่าจะกดปุ่ม
       const targetTime = monthsConfig[activeMonthIndex];
       document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
+      // 🔥 เพิ่มโค้ดส่วนนี้เข้าไปท้ายฟังก์ชัน เพื่อสั่งให้เปิดแสดงปฏิทินทันทีที่โหลดเสร็จ
+      if (typeof triggerShowCalendar === 'function') {
+        triggerShowCalendar();
+      }
     }
 
     // ฟังก์ชันสำหรับกดปุ่ม "แสดงปฏิทินประจำเดือน"
