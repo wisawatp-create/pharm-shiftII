@@ -26,28 +26,24 @@
   </div>
 
   <script>
-    // 🔗 ตั้งค่า URL ของ Standalone GAS Web App และ GitHub Raw Base URL ของคุณ
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxSdxNXS1dm0P2MPl6Yu8uX0CJL3vb31dG84EDqqVEgvz7QiopYTuUMl-v6dH6nGllF/exec";
     const GITHUB_RAW_URL = "https://wisawatp-create.github.io/pharm-shiftII/";
 
-    // ตัวแปรส่วนกลางสำหรับจำลอง Session หลัง Login สำเร็จ
     let currentUser = { name: "", role: "" };
 
-    // 🔥 [เพิ่มใหม่] คำนวณหาเดือนปัจจุบันและเดือนถัดไปไว้รอเลยตั้งแต่โหลดหน้าแรก
+    // เปลี่ยนมาผูกเข้ากับ window โดยตรงเพื่อให้ไฟล์อื่นเรียกข้ามไปมาได้
     const now = new Date();
-    const globalMonthsConfig = [
+    window.globalMonthsConfig = [
       { year: now.getFullYear(), month: now.getMonth() },
       { year: new Date(now.getFullYear(), now.getMonth() + 1, 1).getFullYear(), month: new Date(now.getFullYear(), now.getMonth() + 1, 1).getMonth() }
     ];
-    const globalThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-    const globalThaiDaysShort = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
+    window.globalThaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+    window.globalThaiDaysShort = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 
-    // เรียกทำงานเมื่อโหลดหน้าเว็บครั้งแรก ให้ไปหน้า Login
     window.addEventListener('DOMContentLoaded', () => {
       navigateTo('login.html');
     });
 
-    // ฟังก์ชันหลักในการดึงเนื้อหาจาก GitHub มาเปลี่ยนหน้าจอ
     async function navigateTo(pageName) {
       const appContainer = document.getElementById('app');
       try {
@@ -55,25 +51,32 @@
         if (!response.ok) throw new Error("ไม่สามารถโหลดไฟล์คอมโพเนนต์ได้");
         let html = await response.text();
         
-        // แทนที่ตัวแปรไดนามิกใน HTML (ถ้ามี เช่น ชื่อพนักงานในหน้าตารางเวร)
         if (pageName === 'schedule.html') {
           html = html.replace('<?= employeeName ?>', currentUser.name)
                      .replace('<?= employeeRole ?>', currentUser.role);
-          // วางเนื้อหา HTML ลงในหน้าจอหลัก (ซึ่งจะมีกล่อง "กำลังเตรียมระบบ" แสดงขึ้นมาทันที)
-          appContainer.innerHTML = html;
-        } else {
-          appContainer.innerHTML = html;
-        }        
+        }
+        
+        appContainer.innerHTML = html;
+
+        // 🔥 แก้ไขเรื่องสคริปต์ไม่รัน: ค้นหาแท็กสคริปต์ใน HTML ที่ดึงมาแล้วสร้าง Element ใหม่เพื่อให้มันรันทำงาน
+        const scripts = appContainer.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+          const newScript = document.createElement('script');
+          if (oldScript.src) {
+            newScript.src = oldScript.src;
+          } else {
+            newScript.innerHTML = oldScript.innerHTML;
+          }
+          document.body.appendChild(newScript);
+          oldScript.remove(); // ลบสคริปต์เก่าที่ทำงานไม่ได้ออกไป
+        });
+
       } catch (error) {
         appContainer.innerHTML = `<div class="text-center text-red-500"><i class="fa-solid fa-triangle-exclamation text-2xl"></i><p class="text-sm mt-2">${error.message}</p></div>`;
       }
     }
 
-    // ----------------------------------------------------
-    // ฟังก์ชันจัดการ Event (เมื่อปุ่มในหน้าย่อยต่างๆ ถูกกด)
-    // ----------------------------------------------------
-    
-    // สำหรับหน้า Login (เรียกใช้จากปุ่มใน login.html)
+    // ฟังก์ชันจัดการล็อกอิน (ชุดเดียว ไม่ซ้ำซ้อน)
     async function handleLogin(e) {
       e.preventDefault();
       const user = document.getElementById('username').value;
@@ -81,7 +84,7 @@
       const btn = document.getElementById('submitBtn');
       
       btn.disabled = true;
-      btn.innerText = "กำลังตรวจสอบ...";
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> กำลังตรวจสอบ...`;
 
       try {
         const res = await fetch(GAS_WEB_APP_URL, {
@@ -101,65 +104,13 @@
           btn.innerHTML = `<span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
         }
       } catch (err) {
-        alert("เชื่อมต่อเซิร์ฟเวอร์ GAS ล้มเหลว");
+        alert("การเชื่อมโยงระบบคลาวด์ Apps Script ขัดข้อง กรุณาลองใหม่อีกครั้ง");
         btn.disabled = false;
+        btn.innerHTML = `<span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
       }
     }
 
-    // สำหรับหน้า Register (เรียกใช้จากปุ่มใน register.html)
-    async function handleRegister(e) {
-      e.preventDefault();
-      const fullName = document.getElementById('regFullName').value;
-      const email = document.getElementById('regEmail').value;
-      const role = document.getElementById('regRole').value;
-      const password = document.getElementById('regPassword').value;
-      const confirmPassword = document.getElementById('regConfirmPassword').value;
-      const btn = document.getElementById('regSubmitBtn');
-
-      if (password !== confirmPassword) {
-        alert("รหัสผ่านไม่ตรงกัน");
-        return;
-      }
-
-      btn.disabled = true;
-      btn.innerText = "กำลังบันทึก...";
-
-      try {
-        const res = await fetch(GAS_WEB_APP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "register", userData: { fullName, email, role, password } })
-        });
-        const data = await res.json();
-        
-        if (data.success) {
-          alert(data.message);
-          navigateTo('login.html');
-        } else {
-          alert(data.message);
-          btn.disabled = false;
-        }
-      } catch (err) {
-        alert("เกิดข้อผิดพลาดคลาวด์");
-        btn.disabled = false;
-      }
-    }
-
-    function togglePassword() {
-      const pwd = document.getElementById('password');
-      const icon = document.getElementById('toggleIcon');
-      if (pwd.type === 'password') {
-        pwd.type = 'text';
-        icon.className = 'fa-solid fa-eye-slash';
-      } else {
-        pwd.type = 'password';
-        icon.className = 'fa-solid fa-eye';
-      }
-    }
-
-      /**
-     * ระบบส่งข้อมูลลงทะเบียนบันทึกลง Google Sheet
-     */
+    // ฟังก์ชันจัดการลงทะเบียน (ชุดเดียว ไม่ซ้ำซ้อน)
     async function handleRegister(e) {
       e.preventDefault();
       const fullName = document.getElementById('regFullName').value;
@@ -187,7 +138,7 @@
         
         if (data.success) {
           alert(data.message);
-          navigateTo('login.html'); // สมัครเสร็จสิ้น ส่งกลับไปหน้าล็อกอินเพื่อเข้าใช้งานคราวต่อไป
+          navigateTo('login.html');
         } else {
           alert(data.message);
           btn.disabled = false;
@@ -200,6 +151,18 @@
       }
     }
     
+    function togglePassword() {
+      const pwd = document.getElementById('password');
+      const icon = document.getElementById('toggleIcon');
+      if (pwd.type === 'password') {
+        pwd.type = 'text';
+        icon.className = 'fa-solid fa-eye-slash';
+      } else {
+        pwd.type = 'password';
+        icon.className = 'fa-solid fa-eye';
+      }
+    }
+
     function handleLogout() {
       currentUser = { name: "", role: "" };
       navigateTo('login.html');
