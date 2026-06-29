@@ -133,7 +133,7 @@
 
       const targetTime = monthsConfig[activeMonthIndex];
       document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
-      
+      fetchAllStaff();
       triggerShowCalendar();
     }
 
@@ -146,6 +146,7 @@
       const targetTime = monthsConfig[activeMonthIndex];
       renderCalendar(targetTime.year, targetTime.month);
       fetchDutiesFromSheet();
+    
     }
 
     function selectMonthTab(index) {
@@ -170,6 +171,7 @@
       if (isCalendarExpanded) {
         renderCalendar(targetTime.year, targetTime.month);
         fetchDutiesFromSheet();
+       
       }
     }
 
@@ -186,7 +188,7 @@
       
       if (isCalendarExpanded) {
         fetchDutiesFromSheet();
-        fetchAllStaff();
+       
       }
     }
     
