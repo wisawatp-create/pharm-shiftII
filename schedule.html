@@ -186,8 +186,30 @@
       
       if (isCalendarExpanded) {
         fetchDutiesFromSheet();
+        fetchAllStaff();
       }
     }
+    
+    async function fetchAllStaff(){
+       console.log("📡 เริ่มต้นดึงข้อมูลตารางเวรและรายชื่อเจ้าหน้าที่ทั้งหมดจากชีท..."); 
+       try {        
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ 
+            action: "getAllStaff", 
+            userRole: currentUser.role  
+          })
+        });
+        const data = await response.json();
+        if (data.success) {                   
+          // 🌟 โดนโหลดและเก็บค่าเข้าตัวแปรส่วนกลางทันทีตั้งแต่เปิดหน้าจอ
+          allStaffList = data.allStaff || []; 
+          console.log("✅ โหลดรายชื่อสำเร็จจำนวน:", allStaffList.length, "คน", allStaffList);
+        }
+      }
+    }
+      
 
     async function fetchDutiesFromSheet() {
       if (!isCalendarExpanded) return;
@@ -197,7 +219,7 @@
       const targetTime = monthsConfig[activeMonthIndex];
       
       try {
-        console.log("📡 เริ่มต้นดึงข้อมูลตารางเวรและรายชื่อเจ้าหน้าที่ทั้งหมดจากชีท...");
+        
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
@@ -211,12 +233,7 @@
         });
         const data = await response.json();
         if (data.success) {
-          serverDuties = data.duties;
-          
-          // 🌟 โดนโหลดและเก็บค่าเข้าตัวแปรส่วนกลางทันทีตั้งแต่เปิดหน้าจอ
-          allStaffList = data.allStaff || []; 
-          console.log("✅ โหลดรายชื่อสำเร็จจำนวน:", allStaffList.length, "คน", allStaffList);
-
+          serverDuties = data.duties;    
           renderCalendar(targetTime.year, targetTime.month);
           
           if (selectedDate) {
