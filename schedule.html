@@ -330,13 +330,45 @@
       });
     }
 
-    function openReplaceModal(dateKey, approvedUser, subIndex) {
-      // 📦 ตรวจสอบสถานะตัวแปรเพื่อป้องกัน Error
-      if (!allStaffList || allStaffList.length === 0) {
-        console.warn("ยังไม่มีข้อมูลใน allStaffList กรุณาตรวจสอบการซิงก์ข้อมูลจากฐานข้อมูล Google Sheets");
+    // 🌟 ปรับปรุงให้เป็น async function เพื่อรองรับการโหลดข้อมูลก่อนเปิด Modal
+    async function openReplaceModal(dateKey, approvedUser, subIndex) {
+      
+      // 1. 🔄 แสดงสถานะ "กำลังอ่านข้อมูล..." (Loading) ป้องกันการกดซ้ำและแจ้งผู้ใช้
+      Swal.fire({
+        title: 'กำลังอ่านข้อมูล...',
+        html: 'ระบบกำลังดึงรายชื่อเจ้าหน้าที่ล่าสุดจาก Google Sheets',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading(); // แสดง Icon หมุนๆ หมุนรอ
+        },
+        customClass: { popup: 'rounded-3xl' }
+      });
+
+      // 2. 📡 (Optional) จุดรีเฟรชข้อมูลรายชื่อและตารางเวรให้เป็นปัจจุบันที่สุดแบบ Real-time
+      // เพื่อให้มั่นใจว่าก่อนเปิด Modal ระบบมีข้อมูลใน allStaffList และ serverDuties ชัวร์ๆ
+      try {
+        const targetTime = monthsConfig[activeMonthIndex];
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ 
+            action: "getDuties", 
+            userRole: currentUser.role,          
+            dutyType: selectedDutyType,          
+            year: targetTime.year, 
+            month: targetTime.month 
+          })
+        });
+        const data = await response.json();
+        if (data.success) {
+          serverDuties = data.duties;
+          allStaffList = data.allStaff || []; // อัปเดตรายชื่อเข้าตัวแปรส่วนกลาง
+        }
+      } catch (err) {
+        console.error("ไม่สามารถดึงข้อมูลแบบ Real-time ได้ จะใช้ข้อมูลแคชเดิม:", err);
       }
 
-      // 1. ค้นหาชื่อผู้ปฏิบัติงานแทนปัจจุบัน (เช็กจากคิว Batch ก่อน ถ้าไม่มีให้ใช้จาก Server)
+      // 3. 🔍 ค้นหาชื่อผู้ปฏิบัติงานแทนปัจจุบัน (เช็กจากคิว Batch ก่อน ถ้าไม่มีให้ใช้จาก Server)
       const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
       let currentActiveUser = "";
     
@@ -349,11 +381,10 @@
         }
       }
     
-      // 2. เตรียมโครงสร้าง HTML Options ของ Dropdown Select
+      // 4. 📝 เตรียมโครงสร้าง HTML Options ของ Dropdown Select
       let selectOptionsHtml = `<option value="" disabled selected>-- เลือกรายชื่อผู้ขึ้นแทน --</option>`;
     
-      // 3. 🎯 บริหารจัดการเงื่อนไขการแสดงผลตัวเลือก (ลอจิกปรับปรุงใหม่)
-      
+      // 5. 🎯 บริหารจัดการเงื่อนไขการแสดงผลตัวเลือก
       // กรณี ก: ไม่มีรายชื่อต้นเวร (approvedUser ว่างเปล่า) ให้พ่นรายชื่อเจ้าหน้าที่ทั้งหมดออกมาเลย
       if (!approvedUser || approvedUser.trim() === "" || approvedUser === "ไม่ระบุต้นเวร") {
         allStaffList.forEach(staffName => {
@@ -365,11 +396,10 @@
         // เพิ่มตัวเลือกพิเศษ "**ขึ้นปฏิบัติงานเอง**" ไว้ที่บรรทัดบนสุด
         selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง" class="font-bold text-emerald-600">➔ **ขึ้นปฏิบัติงานเอง**</option>`;
         
-        // 🌟 กรองรายชื่อทั้งหมดโดย "ห้ามซ้ำกับชื่อเจ้าหน้าที่ต้นเวร (approvedUser)"
+        // กรองรายชื่อทั้งหมดโดย "ห้ามซ้ำกับชื่อเจ้าหน้าที่ต้นเวร (approvedUser)"
         let filteredStaff = allStaffList.filter(name => name !== approvedUser);
         
         filteredStaff.forEach(staffName => {
-          // สามารถเลือกซ้ำกับคนขึ้นแทนคนปัจจุบันได้ (กรณีเปิด Modal ซ้ำเพื่อยืนยันค่าเดิม)
           const isCurrentReplace = (staffName === currentActiveUser) ? " (เลือกอยู่ปัจจุบัน)" : "";
           selectOptionsHtml += `<option value="${staffName}" ${staffName === currentActiveUser ? 'selected' : ''}>${staffName}${isCurrentReplace}</option>`;
         });
@@ -378,7 +408,7 @@
       const displayDateParts = dateKey.split('-');
       const formattedThaiDate = `${displayDateParts[2]} ${thaiMonths[parseInt(displayDateParts[1])]} ${parseInt(displayDateParts[0]) + 543}`;
     
-      // 4. แสดงผล Modal สวยงามด้วย SweetAlert2
+      // 6. 🎉 ปิด Loading ตัวเก่า และเปิดหน้าต่าง Modal ตัวจริงขึ้นมาแสดงทันทีหลังจากข้อมูลพร้อม
       Swal.fire({
         title: '<span class="text-sm font-extrabold text-slate-700">จัดสรรผู้ปฏิบัติงานแทน</span>',
         html: `
