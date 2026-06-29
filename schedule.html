@@ -197,6 +197,7 @@
       const targetTime = monthsConfig[activeMonthIndex];
       
       try {
+        console.log("📡 เริ่มต้นดึงข้อมูลตารางเวรและรายชื่อเจ้าหน้าที่ทั้งหมดจากชีท...");
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
@@ -211,7 +212,11 @@
         const data = await response.json();
         if (data.success) {
           serverDuties = data.duties;
-          allStaffList = data.allStaff || []; // ดึงรายชื่อพนักงานทั้งหมดมาเก็บไว้ทำลิสต์ตัวเลือก
+          
+          // 🌟 โดนโหลดและเก็บค่าเข้าตัวแปรส่วนกลางทันทีตั้งแต่เปิดหน้าจอ
+          allStaffList = data.allStaff || []; 
+          console.log("✅ โหลดรายชื่อสำเร็จจำนวน:", allStaffList.length, "คน", allStaffList);
+
           renderCalendar(targetTime.year, targetTime.month);
           
           if (selectedDate) {
@@ -225,7 +230,7 @@
         if (loadingEl) loadingEl.classList.add('hidden');
       }
     }
-
+    
     function renderCalendar(year, month) {
       const gridContainer = document.getElementById('calendar-days-grid');
       if (!gridContainer || !isCalendarExpanded) return;
