@@ -331,12 +331,12 @@
     }
 
     function openReplaceModal(dateKey, approvedUser, subIndex) {
-      // 📦 ดักจับกรณีที่ระบบยัง Fetch รายชื่อจากคลาวด์มาไม่เสร็จ หรือตัวแปรเป็น Array ว่าง ให้ใช้ตัวเลือกแจ้งเตือนเบื้องต้น
+      // 📦 ตรวจสอบสถานะตัวแปรเพื่อป้องกัน Error
       if (!allStaffList || allStaffList.length === 0) {
-        console.warn("สคริปต์ยังไม่ได้รับข้อมูลรายชื่อจากสเปรดชีต กำลังกู้คืนโครงสร้างสำรอง...");
+        console.warn("ยังไม่มีข้อมูลใน allStaffList กรุณาตรวจสอบการซิงก์ข้อมูลจากฐานข้อมูล Google Sheets");
       }
 
-      // 1. เช็กหาชื่อผู้ปฏิบัติงานปัจจุบันในรายการนี้ (ดูในคิวแก้ไขปัจจุบันก่อน เพื่อให้ลอจิกสอดคล้องเรียลไทม์)
+      // 1. ค้นหาชื่อผู้ปฏิบัติงานแทนปัจจุบัน (เช็กจากคิว Batch ก่อน ถ้าไม่มีให้ใช้จาก Server)
       const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
       let currentActiveUser = "";
     
@@ -349,37 +349,42 @@
         }
       }
     
-      // 2. สร้างโครง HTML Options สำหรับเมนู Dropdown
+      // 2. เตรียมโครงสร้าง HTML Options ของ Dropdown Select
       let selectOptionsHtml = `<option value="" disabled selected>-- เลือกรายชื่อผู้ขึ้นแทน --</option>`;
     
-      // 3. กรองข้อมูลและพ่นตัวเลือกตามเงื่อนไขที่คุณระบุ
-      if (!currentActiveUser || currentActiveUser === "ขึ้นปฏิบัติงานเอง") {
-        // 🔹 กรณีที่ 1: ไม่มีรายชื่อคนขึ้นเวรแทนอยู่เดิม -> แสดงรายชื่อทั้งหมด
+      // 3. 🎯 บริหารจัดการเงื่อนไขการแสดงผลตัวเลือก (ลอจิกปรับปรุงใหม่)
+      
+      // กรณี ก: ไม่มีรายชื่อต้นเวร (approvedUser ว่างเปล่า) ให้พ่นรายชื่อเจ้าหน้าที่ทั้งหมดออกมาเลย
+      if (!approvedUser || approvedUser.trim() === "" || approvedUser === "ไม่ระบุต้นเวร") {
         allStaffList.forEach(staffName => {
           selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
         });
-      } else {
-        // 🔹 กรณีที่ 2: มีรายชื่อคนขึ้นเวรอยู่แล้ว -> เพิ่มตัวเลือก "ขึ้นปฏิบัติงานเอง" และคัดรายชื่อที่ซ้ำออก
+      } 
+      // กรณี ข: มีรายชื่อต้นเวรอยู่แล้ว
+      else {
+        // เพิ่มตัวเลือกพิเศษ "**ขึ้นปฏิบัติงานเอง**" ไว้ที่บรรทัดบนสุด
         selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง" class="font-bold text-emerald-600">➔ **ขึ้นปฏิบัติงานเอง**</option>`;
         
-        // กรองรายชื่อทั้งหมด โดยตัดคนที่เป็นผู้ขึ้นเวรแทนคนปัจจุบันออก เพื่อไม่ให้เลือกซ้ำ
-        let filteredStaff = allStaffList.filter(name => name !== currentActiveUser);
+        // 🌟 กรองรายชื่อทั้งหมดโดย "ห้ามซ้ำกับชื่อเจ้าหน้าที่ต้นเวร (approvedUser)"
+        let filteredStaff = allStaffList.filter(name => name !== approvedUser);
         
         filteredStaff.forEach(staffName => {
-          selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
+          // สามารถเลือกซ้ำกับคนขึ้นแทนคนปัจจุบันได้ (กรณีเปิด Modal ซ้ำเพื่อยืนยันค่าเดิม)
+          const isCurrentReplace = (staffName === currentActiveUser) ? " (เลือกอยู่ปัจจุบัน)" : "";
+          selectOptionsHtml += `<option value="${staffName}" ${staffName === currentActiveUser ? 'selected' : ''}>${staffName}${isCurrentReplace}</option>`;
         });
       }
     
       const displayDateParts = dateKey.split('-');
       const formattedThaiDate = `${displayDateParts[2]} ${thaiMonths[parseInt(displayDateParts[1])]} ${parseInt(displayDateParts[0]) + 543}`;
     
-      // 4. แสดงหน้าต่าง Modal ด้วย SweetAlert2
+      // 4. แสดงผล Modal สวยงามด้วย SweetAlert2
       Swal.fire({
         title: '<span class="text-sm font-extrabold text-slate-700">จัดสรรผู้ปฏิบัติงานแทน</span>',
         html: `
           <div class="text-left text-xs text-slate-500 space-y-2 p-1">
             <p><b>วันที่ปฏิบัติงาน:</b> ${formattedThaiDate}</p>
-            <p><b>เจ้าหน้าที่ต้นเวร:</b> <span class="text-slate-800 font-bold">${approvedUser || "ไม่มีรายชื่อต้นเวร"}</span></p>
+            <p><b>เจ้าหน้าที่ต้นเวร:</b> <span class="text-slate-800 font-bold">${approvedUser || "ไม่มีรายชื่อต้นเวร (แสดงรายชื่อทั้งหมด)"}</span></p>
             ${currentActiveUser ? `<p><b>ผู้ขึ้นแทนปัจจุบัน:</b> <span class="text-amber-600 font-bold">${currentActiveUser}</span></p>` : ''}
             <label class="block mt-4 mb-1 font-bold text-slate-700">เลือกผู้รับผิดชอบเวรแทนคนใหม่:</label>
             <select id="swal-select-replace-user" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004b8d]">
