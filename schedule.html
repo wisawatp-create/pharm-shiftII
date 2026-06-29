@@ -25,8 +25,8 @@
 <div class="overflow-x-auto pb-2 mb-4 scrollbar-none" id="duty-type-tabs">
   <div class="flex gap-2 w-max px-0.5">
     <button onclick="changeDutyTypeTab('ชบด')" class="tab-item bg-[#004b8d] text-white px-4 py-1.5 rounded-full shadow-xs whitespace-nowrap text-xs font-semibold transition-all cursor-pointer">ชบด</button>
-    <button onclick="changeDutyTypeTab('บ่ายน้อย')" class="tab-item bg-slate-200/60 text-slate-500 px-4 py-1.5 rounded-full whitespace-nowrap text-xs font-semibold transition-all hover:bg-slate-200 cursor-pointer">บ่ายน้อย</button>
-    <button onclick="changeDutyTypeTab('SMC')" class="tab-item bg-slate-200/60 text-slate-500 px-4 py-1.5 rounded-full whitespace-nowrap text-xs font-semibold transition-all hover:bg-slate-200 cursor-pointer">SMC</button>
+    <button onclick="changeDutyTypeTab('บ่าย')" class="tab-item bg-slate-200/60 text-slate-500 px-4 py-1.5 rounded-full whitespace-nowrap text-xs font-semibold transition-all hover:bg-slate-200 cursor-pointer">บ่าย</button>
+    <button onclick="changeDutyTypeTab('ดึก')" class="tab-item bg-slate-200/60 text-slate-500 px-4 py-1.5 rounded-full whitespace-nowrap text-xs font-semibold transition-all hover:bg-slate-200 cursor-pointer">ดึก</button>
   </div>
 </div>
 
@@ -58,12 +58,11 @@
     <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold text-slate-400 mb-2 border-b border-slate-50 pb-2">
       <div class="text-red-400">อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div class="text-indigo-400">ส</div>
     </div>
-    <div id="calendar-days-grid" class="grid grid-cols-7 gap-y-3 gap-x-1 text-center text-xs font-medium text-slate-600 flex-1 content-start">
-      </div>
+    <div id="calendar-days-grid" class="grid grid-cols-7 gap-y-3 gap-x-1 text-center text-xs font-medium text-slate-600 flex-1 content-start"></div>
   </div>
 </div>
 
-<div class="flex-1 flex flex-col">
+<div class="flex-1 flex flex-col mb-5">
   <div class="flex justify-between items-center mb-3 px-1">
     <h3 id="selected-date-label" class="font-extrabold text-slate-800 text-sm">เลือกวันที่</h3>
     <span class="text-[10px] text-slate-400 font-medium"><i class="fa-solid fa-list-ul"></i> รายชื่อผู้ปฏิบัติงาน</span>
@@ -76,9 +75,19 @@
   </div>
 </div>
 
+<div id="batch-queue-container" class="bg-amber-50 rounded-3xl p-4 border border-amber-200/60 hidden mb-6 animate-fade-in">
+  <div class="flex justify-between items-center mb-3">
+    <span class="text-xs font-bold text-amber-800"><i class="fa-solid fa-layer-group"></i> รายการรอการบันทึกสู่ระบบคลาวด์ (<span id="batch-count">0</span>)</span>
+    <button onclick="clearBatchQueue()" class="text-[11px] text-red-500 font-bold hover:underline">ล้างคิว</button>
+  </div>
+  <div id="batch-queue-list" class="space-y-2 max-h-[120px] overflow-y-auto text-xs text-slate-600 mb-4"></div>
+  <button id="btn-save-batch" onclick="submitBatchChangesToServer()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2.5 rounded-xl font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+    <i class="fa-solid fa-cloud-arrow-up"></i> ยืนยันบันทึกข้อมูลทั้งหมดลงชีท
+  </button>
+</div>
+
 <script>
   (() => {
-    // 🛠️ เชื่อมโยงตัวแปร Config กับส่วนกลางที่ประกาศไว้ที่ window ใน index.html
     const monthsConfig = window.globalMonthsConfig || [];
     const thaiMonths = window.globalThaiMonths || [];
     const thaiDaysShort = window.globalThaiDaysShort || [];
@@ -87,17 +96,21 @@
     let selectedDutyType = "ชบด"; 
     let selectedDate = null;
     let serverDuties = {};
+    let allStaffList = []; // รายชื่อเจ้าหน้าที่ทั้งหมดในระบบที่ดึงมาจาก Server
     let isCalendarExpanded = false;
+    
+    // 📦 โครงสร้างเก็บข้อมูล Batch Updates สำหรับรวบรวมส่งทีเดียว
+    let batchUpdatesQueue = {}; 
 
-    // 📤 นำฟังก์ชันสิทธิ์ภายในสโคป ผูกออกไปข้างนอกเพื่อให้ Element HTML (onclick) กดเรียกเจอ
     window.selectMonthTab = selectMonthTab;
     window.changeDutyTypeTab = changeDutyTypeTab;
     window.triggerShowCalendar = triggerShowCalendar;
     window.selectDate = selectDate;
-    window.requestReplace = requestReplace;
+    window.openReplaceModal = openReplaceModal;
+    window.clearBatchQueue = clearBatchQueue;
+    window.submitBatchChangesToServer = submitBatchChangesToServer;
 
-    // 🚀 ยิงเริ่มต้นสั่งรันโครงสร้างปฏิทินด้วยตัวเองทันทีที่ดึงมาวางเสร็จ
-    console.log("=== สคริปต์ตารางเวรทำงานเรียบร้อย ===");
+    console.log("=== สคริปต์ตารางเวรเวอร์ชัน Batch & SweetAlert พร้อมทำงาน ===");
     initComponent();
 
     function initComponent() {
@@ -109,22 +122,18 @@
         return;
       }
 
-      // แสดงชื่อเดือนที่ปุ่มแถบเลือกด้านบน
       document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
       document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
       
-      // ปิดหน้าจอกำลังเตรียมระบบเบื้องต้น
       const prepLoader = document.getElementById('system-prep-loader');
       if (prepLoader) {
         prepLoader.style.opacity = '0';
         setTimeout(() => prepLoader.classList.add('hidden'), 300);
       }
 
-      // ตรวจตั้งค่าแสดงชื่อหัวเรื่องเดือนที่เลือกอยู่
       const targetTime = monthsConfig[activeMonthIndex];
       document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
       
-      // บังคับเปิดแสดงผลปฏิทินตั้งแต่เริ่มโหลดเลย
       triggerShowCalendar();
     }
 
@@ -144,7 +153,6 @@
       const btnCurrent = document.getElementById('btn-current-month');
       const btnNext = document.getElementById('btn-next-month');
       
-      // สลับสไตล์แท็บที่ถูกคลิก
       if (index === 0) {
         btnCurrent.className = "bg-white text-[#004b8d] py-2 rounded-lg shadow-xs transition-all font-bold text-xs cursor-pointer";
         btnNext.className = "text-slate-400 py-2 rounded-lg transition-all hover:text-slate-600 text-xs cursor-pointer";
@@ -203,9 +211,9 @@
         const data = await response.json();
         if (data.success) {
           serverDuties = data.duties;
+          allStaffList = data.allStaff || []; // ดึงรายชื่อพนักงานทั้งหมดมาเก็บไว้ทำลิสต์ตัวเลือก
           renderCalendar(targetTime.year, targetTime.month);
           
-          // หากเคยกดเลือกวันค้างไว้ ให้ดึงรายละเอียดของวันนั้นกลับมาแสดงต่อ
           if (selectedDate) {
             const parts = selectedDate.split('-');
             selectDate(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
@@ -223,17 +231,14 @@
       if (!gridContainer || !isCalendarExpanded) return;
       
       gridContainer.innerHTML = "";
-
       const firstDayIndex = new Date(year, month, 1).getDay();
       const totalDays = new Date(year, month + 1, 0).getDate();
       const prevMonthTotalDays = new Date(year, month, 0).getDate();
 
-      // แสดงวันที่เดือนที่แล้วแบบจางๆ เติมเต็มช่องว่างส่วนหน้า
       for (let x = firstDayIndex; x > 0; x--) {
         gridContainer.innerHTML += `<div class="text-slate-200 py-1 select-none font-medium">${prevMonthTotalDays - x + 1}</div>`;
       }
 
-      // วาดปฏิทินวันที่ปัจจุบันในเดือนนั้นๆ
       for (let day = 1; day <= totalDays; day++) {
         const dateKey = `${year}-${month}-${day}`;
         const dutiesList = serverDuties[dateKey];
@@ -257,7 +262,6 @@
           </div>`;
       }
 
-      // แสดงวันที่เดือนถัดไปแบบจางๆ เติมเต็มช่องว่างส่วนท้าย
       const totalCells = firstDayIndex + totalDays;
       const remainingCells = (7 - (totalCells % 7)) % 7;
       for (let i = 1; i <= remainingCells; i++) {
@@ -284,33 +288,38 @@
         return;
       }
 
-      dutiesList.forEach(duty => {
-        let replaceInfoHtml = "";
-        if (duty.isAvailable) {
-          replaceInfoHtml = `
-            <button onclick="requestReplace('${dateKey}', '${duty.approvedUser}')" class="bg-amber-500 hover:bg-amber-600 text-white text-[11px] px-3 py-1 rounded-lg font-bold shadow-xs transition-colors cursor-pointer">
-              ลงชื่อแทน
-            </button>`;
-        } else {
-          replaceInfoHtml = `
-            <div class="text-right">
-              <p class="text-[10px] text-slate-400 font-medium">ผู้ปฏิบัติงานแทน</p>
-              <p class="text-xs font-bold text-teal-600">${duty.replaceUser}</p>
-            </div>`;
-        }
+      dutiesList.forEach((duty, subIndex) => {
+        // 📦 ตรวจสอบว่าใน Batch Queue มีคิวแก้ไขของรายการนี้อยู่ก่อนหน้านี้หรือยัง เพื่อนำมาแสดงผลแบบ Realtime บน UI
+        const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
+        const activeDutyUser = batchUpdatesQueue[batchKey] ? batchUpdatesQueue[batchKey].replaceUser : (duty.isAvailable ? "ยังไม่มีผู้แทน" : duty.replaceUser);
+        const isQueued = batchUpdatesQueue[batchKey] ? true : false;
 
-        // เช็กสีกรอบด้านข้างตามประเภทป้ายเวร
+        // 🌟 ปรับปรุงข้อกำหนดข้อที่ 2: เพิ่มปุ่ม "ลงชื่อแทน" ให้แสดงในทุกรายการ เพื่อเปิดสิทธิ์ให้แก้ไขต่อไปได้เรื่อยๆ
+        let replaceInfoHtml = `
+          <div class="text-right flex flex-col items-end gap-1.5">
+            ${duty.isAvailable && !isQueued ? 
+              `<span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-100">เวรว่าง</span>` : 
+              `<div class="text-right">
+                <p class="text-[9px] text-slate-400 font-medium">ผู้ปฏิบัติงานแทน</p>
+                <p class="text-xs font-bold ${isQueued ? 'text-amber-500' : 'text-teal-600'}">${activeDutyUser}</p>
+               </div>`
+            }
+            <button onclick="openReplaceModal('${dateKey}', '${duty.approvedUser || ''}', ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
+              <i class="fa-solid fa-user-pen"></i> ลงชื่อแทน
+            </button>
+          </div>`;
+
         const borderBadgeColor = duty.badge === 'ชบด' ? 'border-l-[#004b8d]' : duty.badge === 'บ่าย' ? 'border-l-teal-500' : 'border-l-red-500';
 
         container.innerHTML += `
-          <div class="bg-white rounded-2xl p-3 border-l-4 ${borderBadgeColor} shadow-sm border border-slate-100 flex justify-between items-center animate-fade-in">
+          <div class="bg-white rounded-2xl p-3 border-l-4 ${borderBadgeColor} shadow-sm border border-slate-100 flex justify-between items-center ${isQueued ? 'bg-amber-50/40 ring-1 ring-amber-200' : ''}">
             <div class="flex items-center gap-3">
               <div class="bg-slate-50 rounded-xl px-2.5 py-1.5 text-center border border-slate-100">
                 <p class="text-[9px] text-slate-400 font-bold">${thaiDaysShort[new Date(year, month, day).getDay()]}</p>
                 <p class="text-base font-extrabold text-slate-700 leading-none">${day < 10 ? '0'+day : day}</p>
               </div>
               <div>
-                <h4 class="font-bold text-slate-800 text-sm">${duty.approvedUser}</h4>
+                <h4 class="font-bold text-slate-800 text-sm">${duty.approvedUser || "ไม่ระบุต้นเวร"}</h4>
                 <p class="text-[11px] text-slate-400 font-medium"><i class="fa-regular fa-clock text-[10px]"></i> ${duty.time}</p>
               </div>
             </div>
@@ -321,6 +330,189 @@
       });
     }
 
+    // 🌟 ปรับปรุงข้อกำหนดข้อที่ 1 และ 3: ใช้ SweetAlert เป็น Modal และคัดกรองรายชื่อตามเงื่อนไขอย่างถูกต้อง
+    function openReplaceModal(dateKey, approvedUser, subIndex) {
+      // คัดกรองตัวเลือกโดยห้ามไม่ให้รายชื่อซ้ำกับต้นเวร
+      let filteredStaff = allStaffList.filter(name => name !== approvedUser);
+      
+      // สร้าง HTML Options สำหรับเมนู Select Dropdown
+      let selectOptionsHtml = `<option value="" disabled selected>-- เลือกรายชื่อผู้ขึ้นแทน --</option>`;
+      
+      // เพิ่มเมนูพิเศษ "**ขึ้นปฏิบัติงานเอง**" ลงไปในระดับบนสุดของตัวเลือก
+      selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง">⭐ ขึ้นปฏิบัติงานเอง</option>`;
+      
+      // เติมรายชื่อพนักงานที่เหลือลงไป
+      filteredStaff.forEach(staffName => {
+        selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
+      });
+
+      const displayDateParts = dateKey.split('-');
+      const formattedThaiDate = `${displayDateParts[2]} ${thaiMonths[parseInt(displayDateParts[1])]} ${parseInt(displayDateParts[0]) + 543}`;
+
+      // เปิดกล่องหน้าต่าง Modal ด้วย SweetAlert2
+      Swal.fire({
+        title: '<span class="text-sm font-extrabold text-slate-700">จัดสรรผู้ปฏิบัติงานแทน</span>',
+        html: `
+          <div class="text-left text-xs text-slate-500 space-y-2 p-1">
+            <p><b>วันที่ปฏิบัติงาน:</b> ${formattedThaiDate}</p>
+            <p><b>เจ้าหน้าที่ต้นเวร:</b> <span class="text-slate-800 font-bold">${approvedUser || "ไม่มีรายชื่อต้นเวร (แสดงรายชื่อทั้งหมด)"}</span></p>
+            <label class="block mt-4 mb-1 font-bold text-slate-700">เลือกผู้รับผิดชอบเวรแทน:</label>
+            <select id="swal-select-replace-user" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004b8d]">
+              ${selectOptionsHtml}
+            </select>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'เพิ่มเข้าคิวบันทึก',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#004b8d',
+        cancelButtonColor: '#64748b',
+        customClass: {
+          popup: 'rounded-3xl',
+          confirmButton: 'rounded-xl text-xs px-4 py-2 font-bold',
+          cancelButton: 'rounded-xl text-xs px-4 py-2 font-bold'
+        },
+        preConfirm: () => {
+          const selectedVal = document.getElementById('swal-select-replace-user').value;
+          if (!selectedVal) {
+            Swal.showValidationMessage('กรุณาเลือกรายชื่อผู้ปฏิบัติงานแทนก่อนกดยืนยัน');
+          }
+          return selectedVal;
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // 📦 ปรับปรุงข้อกำหนดข้อที่ 4: เก็บรายการเข้า Batch Queue
+          const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
+          batchUpdatesQueue[batchKey] = {
+            dateKey: dateKey,
+            dutyType: selectedDutyType,
+            subIndex: subIndex,
+            approvedUser: approvedUser,
+            replaceUser: result.value
+          };
+          
+          updateBatchQueueUI();
+          
+          // รีเฟรชหน้ารายละเอียดเวรของวันนั้นทันทีเพื่อสะท้อนสถานะจำลองในคิว
+          const parts = dateKey.split('-');
+          selectDate(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'เพิ่มเข้าคิวสำเร็จ',
+            text: 'รายการถูกเตรียมไว้ในคิวแล้ว อย่าลืมกดบันทึกสู่ระบบคลาวด์ที่ด้านล่างหน้าจอครับ',
+            timer: 2000,
+            showConfirmButton: false,
+            customClass: { popup: 'rounded-2xl' }
+          });
+        }
+      });
+    }
+
+    // ฟังก์ชันจัดการแสดงผลบล็อกข้อมูลคิวรอการบันทึก (Batch Queue UI Manager)
+    function updateBatchQueueUI() {
+      const queueContainer = document.getElementById('batch-queue-container');
+      const queueList = document.getElementById('batch-queue-list');
+      const queueCount = document.getElementById('batch-count');
+      
+      const keys = Object.keys(batchUpdatesQueue);
+      queueCount.innerText = keys.length;
+      
+      if (keys.length === 0) {
+        queueContainer.classList.add('hidden');
+        return;
+      }
+      
+      queueList.innerHTML = "";
+      keys.forEach(key => {
+        const item = batchUpdatesQueue[key];
+        const parts = item.dateKey.split('-');
+        const thaiDateShort = `${parts[2]} ${thaiMonths[parseInt(parts[1])].substring(0, 6)}`;
+        
+        queueList.innerHTML += `
+          <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-amber-100 shadow-3xs animate-fade-in">
+            <div>
+              <span class="font-bold text-[#004b8d]">[${item.dutyType}]</span> วันที่ ${thaiDateShort}: 
+              <span class="text-slate-400">${item.approvedUser}</span> ➔ <span class="text-emerald-600 font-bold">${item.replaceUser}</span>
+            </div>
+            <button onclick="removeSingleItemFromQueue('${key}')" class="text-red-400 hover:text-red-600 px-1"><i class="fa-solid fa-trash-can"></i></button>
+          </div>`;
+      });
+      
+      queueContainer.classList.remove('hidden');
+    }
+
+    window.removeSingleItemFromQueue = function(key) {
+      const item = batchUpdatesQueue[key];
+      delete batchUpdatesQueue[key];
+      updateBatchQueueUI();
+      
+      if (selectedDate && item) {
+        const parts = item.dateKey.split('-');
+        selectDate(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
+      }
+    };
+
+    function clearBatchQueue() {
+      batchUpdatesQueue = {};
+      updateBatchQueueUI();
+      if (selectedDate) {
+        const parts = selectedDate.split('-');
+        selectDate(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
+      }
+    }
+
+    // 📦 ส่งข้อมูลการแก้ไขทั้งหมดแบบมัดรวม (Batch) ไปอัปเดตลงชีทครั้งเดียว
+    async function submitBatchChangesToServer() {
+      const keys = Object.keys(batchUpdatesQueue);
+      if (keys.length === 0) return;
+
+      const btn = document.getElementById('btn-save-batch');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> กำลังอัปเดตฐานข้อมูลสเปรดชีต...`;
+
+      // แปลงข้อมูล Object Queue ให้เป็นรูปแบบ Array ส่งออก
+      const payloadData = keys.map(key => batchUpdatesQueue[key]);
+
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            action: "saveBatchDuties",
+            updatedBy: currentUser.name,
+            batchList: payloadData
+          })
+        });
+        
+        const resData = await response.json();
+        if (resData.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'บันทึกข้อมูลเรียบร้อย!',
+            text: `แก้ไขข้อมูลตารางเวรลงสเปรดชีตสำเร็จทั้งหมด ${payloadData.length} รายการ`,
+            customClass: { popup: 'rounded-2xl' }
+          });
+          
+          batchUpdatesQueue = {}; // ล้างข้อมูลคิวหลังเซฟสำเร็จ
+          updateBatchQueueUI();
+          fetchDutiesFromSheet(); // โหลดข้อมูลสดๆ ใหม่จาก Google Sheet มาวาดหน้าปฏิทินใหม่
+        } else {
+          throw new Error(resData.message || "เซิร์ฟเวอร์ปฏิเสธการบันทึก");
+        }
+      } catch (err) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาดในการบันทึก',
+          text: err.message || 'ไม่สามารถเชื่อมต่อคลาวด์ Apps Script ได้ กรุณาลองใหม่อีกครั้ง',
+          customClass: { popup: 'rounded-2xl' }
+        });
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> ยืนยันบันทึกข้อมูลทั้งหมดลงชีท`;
+      }
+    }
+
     function resetDutyDetailCard() {
       document.getElementById('selected-date-label').innerText = "เลือกวันที่";
       const container = document.getElementById('duties-list-container');
@@ -329,12 +521,6 @@
           <div class="bg-white rounded-2xl p-4 text-center text-sm text-slate-400 border border-slate-100 shadow-sm">
             กรุณาเลือกวันที่ในปฏิทินเพื่อดูรายชื่อผู้ปฏิบัติงาน
           </div>`;
-      }
-    }
-
-    function requestReplace(dateKey, targetUser) {
-      if (confirm(`คุณต้องการลงชื่อปฏิบัติงานแทน ${targetUser} ในวันที่ ${dateKey} ใช่หรือไม่?`)) {
-         alert("ระบบบันทึกคำขอของคุณเรียบร้อยแล้ว");
       }
     }
   })();
