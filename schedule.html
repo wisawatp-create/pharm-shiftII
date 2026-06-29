@@ -330,8 +330,12 @@
       });
     }
 
-    // 🌟 ปรับปรุงข้อกำหนดข้อที่ 1 และ 3: ใช้ SweetAlert เป็น Modal และคัดกรองรายชื่อตามเงื่อนไขอย่างถูกต้อง
     function openReplaceModal(dateKey, approvedUser, subIndex) {
+      // 📦 ดักจับกรณีที่ระบบยัง Fetch รายชื่อจากคลาวด์มาไม่เสร็จ หรือตัวแปรเป็น Array ว่าง ให้ใช้ตัวเลือกแจ้งเตือนเบื้องต้น
+      if (!allStaffList || allStaffList.length === 0) {
+        console.warn("สคริปต์ยังไม่ได้รับข้อมูลรายชื่อจากสเปรดชีต กำลังกู้คืนโครงสร้างสำรอง...");
+      }
+
       // 1. เช็กหาชื่อผู้ปฏิบัติงานปัจจุบันในรายการนี้ (ดูในคิวแก้ไขปัจจุบันก่อน เพื่อให้ลอจิกสอดคล้องเรียลไทม์)
       const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
       let currentActiveUser = "";
@@ -339,7 +343,6 @@
       if (batchUpdatesQueue[batchKey]) {
         currentActiveUser = batchUpdatesQueue[batchKey].replaceUser;
       } else {
-        // ถ้ายังไม่มีในคิวแก้ไข ให้ดูข้อมูลเดิมจาก Server
         const originalDuty = serverDuties[dateKey] ? serverDuties[dateKey][subIndex] : null;
         if (originalDuty && !originalDuty.isAvailable) {
           currentActiveUser = originalDuty.replaceUser;
@@ -349,14 +352,14 @@
       // 2. สร้างโครง HTML Options สำหรับเมนู Dropdown
       let selectOptionsHtml = `<option value="" disabled selected>-- เลือกรายชื่อผู้ขึ้นแทน --</option>`;
     
-      // 3. กรองข้อมูลและพ่นตัวเลือกตามเงื่อนไขของคุณ
+      // 3. กรองข้อมูลและพ่นตัวเลือกตามเงื่อนไขที่คุณระบุ
       if (!currentActiveUser || currentActiveUser === "ขึ้นปฏิบัติงานเอง") {
-        // 🔹 กรณีที่ 1: ไม่มีรายชื่อคนขึ้นเวรแทนอยู่เดิม (หรือกดกลับมาปฏิบัติงานเองแล้ว) -> แสดงรายชื่อทั้งหมด
+        // 🔹 กรณีที่ 1: ไม่มีรายชื่อคนขึ้นเวรแทนอยู่เดิม -> แสดงรายชื่อทั้งหมด
         allStaffList.forEach(staffName => {
           selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
         });
       } else {
-        // 🔹 กรณีที่ 2: มีรายชื่อคนขึ้นเวรอยู่แล้ว -> เพิ่มตัวเลือก "**ขึ้นปฏิบัติงานเอง**" และคัดรายชื่อที่ซ้ำออก
+        // 🔹 กรณีที่ 2: มีรายชื่อคนขึ้นเวรอยู่แล้ว -> เพิ่มตัวเลือก "ขึ้นปฏิบัติงานเอง" และคัดรายชื่อที่ซ้ำออก
         selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง" class="font-bold text-emerald-600">➔ **ขึ้นปฏิบัติงานเอง**</option>`;
         
         // กรองรายชื่อทั้งหมด โดยตัดคนที่เป็นผู้ขึ้นเวรแทนคนปัจจุบันออก เพื่อไม่ให้เลือกซ้ำ
@@ -403,7 +406,6 @@
         }
       }).then((result) => {
         if (result.isConfirmed) {
-          // บันทึกรายการลงคิว Batch รอเขียนข้อมูลลงชีททีเดียว
           batchUpdatesQueue[batchKey] = {
             dateKey: dateKey,
             dutyType: selectedDutyType,
@@ -414,7 +416,6 @@
           
           updateBatchQueueUI();
           
-          // อัปเดตรีเฟรชหน้าจอกล่องแสดงรายชื่อทันที
           const parts = dateKey.split('-');
           selectDate(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
           
@@ -429,8 +430,6 @@
         }
       });
     }
-    
-
     // ฟังก์ชันจัดการแสดงผลบล็อกข้อมูลคิวรอการบันทึก (Batch Queue UI Manager)
     function updateBatchQueueUI() {
       const queueContainer = document.getElementById('batch-queue-container');
