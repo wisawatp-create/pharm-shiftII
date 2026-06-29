@@ -332,31 +332,53 @@
 
     // 🌟 ปรับปรุงข้อกำหนดข้อที่ 1 และ 3: ใช้ SweetAlert เป็น Modal และคัดกรองรายชื่อตามเงื่อนไขอย่างถูกต้อง
     function openReplaceModal(dateKey, approvedUser, subIndex) {
-      // คัดกรองตัวเลือกโดยห้ามไม่ให้รายชื่อซ้ำกับต้นเวร
-      let filteredStaff = allStaffList.filter(name => name !== approvedUser);
-      
-      // สร้าง HTML Options สำหรับเมนู Select Dropdown
+      // 1. เช็กหาชื่อผู้ปฏิบัติงานปัจจุบันในรายการนี้ (ดูในคิวแก้ไขปัจจุบันก่อน เพื่อให้ลอจิกสอดคล้องเรียลไทม์)
+      const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
+      let currentActiveUser = "";
+    
+      if (batchUpdatesQueue[batchKey]) {
+        currentActiveUser = batchUpdatesQueue[batchKey].replaceUser;
+      } else {
+        // ถ้ายังไม่มีในคิวแก้ไข ให้ดูข้อมูลเดิมจาก Server
+        const originalDuty = serverDuties[dateKey] ? serverDuties[dateKey][subIndex] : null;
+        if (originalDuty && !originalDuty.isAvailable) {
+          currentActiveUser = originalDuty.replaceUser;
+        }
+      }
+    
+      // 2. สร้างโครง HTML Options สำหรับเมนู Dropdown
       let selectOptionsHtml = `<option value="" disabled selected>-- เลือกรายชื่อผู้ขึ้นแทน --</option>`;
-      
-      // เพิ่มเมนูพิเศษ "**ขึ้นปฏิบัติงานเอง**" ลงไปในระดับบนสุดของตัวเลือก
-      selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง">⭐ ขึ้นปฏิบัติงานเอง</option>`;
-      
-      // เติมรายชื่อพนักงานที่เหลือลงไป
-      filteredStaff.forEach(staffName => {
-        selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
-      });
-
+    
+      // 3. กรองข้อมูลและพ่นตัวเลือกตามเงื่อนไขของคุณ
+      if (!currentActiveUser || currentActiveUser === "ขึ้นปฏิบัติงานเอง") {
+        // 🔹 กรณีที่ 1: ไม่มีรายชื่อคนขึ้นเวรแทนอยู่เดิม (หรือกดกลับมาปฏิบัติงานเองแล้ว) -> แสดงรายชื่อทั้งหมด
+        allStaffList.forEach(staffName => {
+          selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
+        });
+      } else {
+        // 🔹 กรณีที่ 2: มีรายชื่อคนขึ้นเวรอยู่แล้ว -> เพิ่มตัวเลือก "**ขึ้นปฏิบัติงานเอง**" และคัดรายชื่อที่ซ้ำออก
+        selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง" class="font-bold text-emerald-600">➔ **ขึ้นปฏิบัติงานเอง**</option>`;
+        
+        // กรองรายชื่อทั้งหมด โดยตัดคนที่เป็นผู้ขึ้นเวรแทนคนปัจจุบันออก เพื่อไม่ให้เลือกซ้ำ
+        let filteredStaff = allStaffList.filter(name => name !== currentActiveUser);
+        
+        filteredStaff.forEach(staffName => {
+          selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
+        });
+      }
+    
       const displayDateParts = dateKey.split('-');
       const formattedThaiDate = `${displayDateParts[2]} ${thaiMonths[parseInt(displayDateParts[1])]} ${parseInt(displayDateParts[0]) + 543}`;
-
-      // เปิดกล่องหน้าต่าง Modal ด้วย SweetAlert2
+    
+      // 4. แสดงหน้าต่าง Modal ด้วย SweetAlert2
       Swal.fire({
         title: '<span class="text-sm font-extrabold text-slate-700">จัดสรรผู้ปฏิบัติงานแทน</span>',
         html: `
           <div class="text-left text-xs text-slate-500 space-y-2 p-1">
             <p><b>วันที่ปฏิบัติงาน:</b> ${formattedThaiDate}</p>
-            <p><b>เจ้าหน้าที่ต้นเวร:</b> <span class="text-slate-800 font-bold">${approvedUser || "ไม่มีรายชื่อต้นเวร (แสดงรายชื่อทั้งหมด)"}</span></p>
-            <label class="block mt-4 mb-1 font-bold text-slate-700">เลือกผู้รับผิดชอบเวรแทน:</label>
+            <p><b>เจ้าหน้าที่ต้นเวร:</b> <span class="text-slate-800 font-bold">${approvedUser || "ไม่มีรายชื่อต้นเวร"}</span></p>
+            ${currentActiveUser ? `<p><b>ผู้ขึ้นแทนปัจจุบัน:</b> <span class="text-amber-600 font-bold">${currentActiveUser}</span></p>` : ''}
+            <label class="block mt-4 mb-1 font-bold text-slate-700">เลือกผู้รับผิดชอบเวรแทนคนใหม่:</label>
             <select id="swal-select-replace-user" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004b8d]">
               ${selectOptionsHtml}
             </select>
@@ -381,8 +403,7 @@
         }
       }).then((result) => {
         if (result.isConfirmed) {
-          // 📦 ปรับปรุงข้อกำหนดข้อที่ 4: เก็บรายการเข้า Batch Queue
-          const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
+          // บันทึกรายการลงคิว Batch รอเขียนข้อมูลลงชีททีเดียว
           batchUpdatesQueue[batchKey] = {
             dateKey: dateKey,
             dutyType: selectedDutyType,
@@ -393,21 +414,22 @@
           
           updateBatchQueueUI();
           
-          // รีเฟรชหน้ารายละเอียดเวรของวันนั้นทันทีเพื่อสะท้อนสถานะจำลองในคิว
+          // อัปเดตรีเฟรชหน้าจอกล่องแสดงรายชื่อทันที
           const parts = dateKey.split('-');
           selectDate(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
           
           Swal.fire({
             icon: 'success',
             title: 'เพิ่มเข้าคิวสำเร็จ',
-            text: 'รายการถูกเตรียมไว้ในคิวแล้ว อย่าลืมกดบันทึกสู่ระบบคลาวด์ที่ด้านล่างหน้าจอครับ',
-            timer: 2000,
+            text: 'รายการอัปเดตถูกพักไว้ในคิวแล้ว อย่าลืมกดปุ่ม "ยืนยันบันทึกข้อมูลทั้งหมดลงชีท" ด้านล่างหน้าจอเมื่อเลือกเสร็จสิ้น',
+            timer: 2500,
             showConfirmButton: false,
             customClass: { popup: 'rounded-2xl' }
           });
         }
       });
     }
+    
 
     // ฟังก์ชันจัดการแสดงผลบล็อกข้อมูลคิวรอการบันทึก (Batch Queue UI Manager)
     function updateBatchQueueUI() {
