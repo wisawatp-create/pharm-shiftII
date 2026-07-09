@@ -85,7 +85,6 @@
     <i class="fa-solid fa-cloud-arrow-up"></i> ยืนยันบันทึกข้อมูลทั้งหมดลงชีท
   </button>
 </div>
-
 <script>
   (() => {
     const monthsConfig = window.globalMonthsConfig || [];
@@ -96,10 +95,8 @@
     let selectedDutyType = "ชบด"; 
     let selectedDate = null;
     let serverDuties = {};
-    let allStaffList = []; // รายชื่อเจ้าหน้าที่ทั้งหมดในระบบที่ดึงมาจาก Server
+    let allStaffList = []; 
     let isCalendarExpanded = false;
-    
-    // 📦 โครงสร้างเก็บข้อมูล Batch Updates สำหรับรวบรวมส่งทีเดียว
     let batchUpdatesQueue = {}; 
 
     window.selectMonthTab = selectMonthTab;
@@ -110,31 +107,48 @@
     window.clearBatchQueue = clearBatchQueue;
     window.submitBatchChangesToServer = submitBatchChangesToServer;
 
-    console.log("=== สคริปต์ตารางเวรเวอร์ชัน Batch & SweetAlert พร้อมทำงาน ===");
-    initComponent();
+    console.log("=== สคริปต์ตารางเวรเวอร์ชัน Patch & SweetAlert พร้อมทำงาน ===");
+    
+    // 🚀 ย้ายมาสั่งรันหลังจากมั่นใจว่า DOM เคลียร์พื้นที่รันคำสั่งเรียบร้อยแล้ว
+    setTimeout(() => {
+      initComponent();
+    }, 100);
 
     function initComponent() {
-      const currentConfig = monthsConfig[0];
-      const nextConfig = monthsConfig[1];
-      
-      if (!currentConfig || !nextConfig) {
-        console.error("ไม่สามารถดึงข้อมูล Config เดือนจากส่วนกลางได้");
-        return;
-      }
+      try {
+        const currentConfig = monthsConfig[0];
+        const nextConfig = monthsConfig[1];
+        
+        if (!currentConfig || !nextConfig) {
+          console.error("ไม่สามารถดึงข้อมูล Config เดือนจากส่วนกลางได้");
+          return;
+        }
 
-      document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
-      document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
-      
+        document.getElementById('btn-current-month').innerText = `${thaiMonths[currentConfig.month]} ${currentConfig.year + 543}`;
+        document.getElementById('btn-next-month').innerText = `${thaiMonths[nextConfig.month]} ${nextConfig.year + 543}`;
+        
+        const targetTime = monthsConfig[activeMonthIndex];
+        document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
+        
+        // 🌟 ดักเรียกโหลดรายชื่อพนักงานก่อน
+        fetchAllStaff();
+        
+        // 🌟 บังคับเปิดแสดงผลปฏิทินและซ่อนตัวหมุนค้าง
+        triggerShowCalendar();
+
+      } catch (err) {
+        console.error("เกิดข้อผิดพลาดในการเตรียม Component ปฏิทิน:", err);
+        // ดักแก้ปัญหาหน้าจอค้าง: ปลดล็อกตัวหมุนทันทีแม้จะดึงข้อมูลไม่สำเร็จ
+        hideSystemPrepLoader();
+      }
+    }
+
+    function hideSystemPrepLoader() {
       const prepLoader = document.getElementById('system-prep-loader');
       if (prepLoader) {
         prepLoader.style.opacity = '0';
         setTimeout(() => prepLoader.classList.add('hidden'), 300);
       }
-
-      const targetTime = monthsConfig[activeMonthIndex];
-      document.getElementById('calendar-month-title').innerText = `${thaiMonths[targetTime.month]} ${targetTime.year + 543}`;     
-      fetchAllStaff();
-      triggerShowCalendar();
     }
 
     function triggerShowCalendar() {
@@ -146,7 +160,7 @@
       const targetTime = monthsConfig[activeMonthIndex];
       renderCalendar(targetTime.year, targetTime.month);
       fetchDutiesFromSheet();
-    
+      hideSystemPrepLoader(); // 🎉 ย้ายมาเคลียร์สถานะล็อกหน้าจอตรงนี้เพื่อให้มั่นใจว่าหลุดหน้าค้างแน่นอน
     }
 
     function selectMonthTab(index) {
@@ -171,7 +185,6 @@
       if (isCalendarExpanded) {
         renderCalendar(targetTime.year, targetTime.month);
         fetchDutiesFromSheet();
-       
       }
     }
 
@@ -188,30 +201,44 @@
       
       if (isCalendarExpanded) {
         fetchDutiesFromSheet();
-       
       }
     }
     
+    // 🌟 ดึงข้อมูล Role แบบปลอดภัยไม่ว่าจะประกาศไว้ที่ window หรือ local scope
+    function getUserRoleSafe() {
+      if (typeof currentUser !== 'undefined' && currentUser.role) {
+        return currentUser.role;
+      }
+      if (window.currentUser && window.currentUser.role) {
+        return window.currentUser.role;
+      }
+      return "Pharmacist"; // เผื่อกรณีดึงไม่เจอ ให้ Fallback เป็นเภสัชกรไว้ก่อนระบบจะได้ไม่ Crash ล็อกหน้านิ่ง
+    }
+
     async function fetchAllStaff(){
-       console.log("📡 เริ่มต้นดึงข้อมูลตารางเวรและรายชื่อเจ้าหน้าที่ทั้งหมดจากชีท..."); 
-       try {        
+      console.log("📡 เริ่มต้นดึงข้อมูลรายชื่อเจ้าหน้าที่ทั้งหมดจากแผ่นงาน name_position..."); 
+      const currentRole = getUserRoleSafe();
+      try {        
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({ 
-            action: "getAllStaff", 
-            userRole: currentUser.role  
+            action: "getDuties", // 🎯 ใช้ action เดียวกันมัดรวมกับโครงสร้างหลักเพื่อประสิทธิภาพความเร็วสูงสุด
+            userRole: currentRole,
+            dutyType: selectedDutyType,
+            year: monthsConfig[activeMonthIndex].year,
+            month: monthsConfig[activeMonthIndex].month
           })
         });
         const data = await response.json();
-        if (data.success) {                   
-          // 🌟 โดนโหลดและเก็บค่าเข้าตัวแปรส่วนกลางทันทีตั้งแต่เปิดหน้าจอ
+        if (data.success) {                    
           allStaffList = data.allStaff || []; 
-          console.log("✅ โหลดรายชื่อสำเร็จจำนวน:", allStaffList.length, "คน", allStaffList);
+          console.log("✅ โหลดรายชื่อจากชีทกลางสำเร็จจำนวน:", allStaffList.length, "คน", allStaffList);
         }
+      } catch (err) {
+        console.error("ระบบติดต่อฐานข้อมูลรายชื่อบุคลากรขัดข้อง:", err);
       }
     }
-      
 
     async function fetchDutiesFromSheet() {
       if (!isCalendarExpanded) return;
@@ -219,15 +246,15 @@
       const loadingEl = document.getElementById('calendar-loading');
       if (loadingEl) loadingEl.classList.remove('hidden');
       const targetTime = monthsConfig[activeMonthIndex];
+      const currentRole = getUserRoleSafe();
       
       try {
-        
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({ 
             action: "getDuties", 
-            userRole: currentUser.role,          
+            userRole: currentRole,          
             dutyType: selectedDutyType,          
             year: targetTime.year, 
             month: targetTime.month 
@@ -236,6 +263,12 @@
         const data = await response.json();
         if (data.success) {
           serverDuties = data.duties;    
+          
+          // 🔥 อัปเดตข้อมูลรายชื่อไปในตัวป้องกันกรณีฟังก์ชันดึงรายชื่อรันหลุดตำแหน่ง
+          if (data.allStaff && data.allStaff.length > 0) {
+            allStaffList = data.allStaff;
+          }
+          
           renderCalendar(targetTime.year, targetTime.month);
           
           if (selectedDate) {
@@ -313,16 +346,14 @@
       }
 
       dutiesList.forEach((duty, subIndex) => {
-        // 📦 ตรวจสอบว่าใน Batch Queue มีคิวแก้ไขของรายการนี้อยู่ก่อนหน้านี้หรือยัง เพื่อนำมาแสดงผลแบบ Realtime บน UI
         const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
         const activeDutyUser = batchUpdatesQueue[batchKey] ? batchUpdatesQueue[batchKey].replaceUser : (duty.isAvailable ? "ยังไม่มีผู้แทน" : duty.replaceUser);
         const isQueued = batchUpdatesQueue[batchKey] ? true : false;
 
-        // 🌟 ปรับปรุงข้อกำหนดข้อที่ 2: เพิ่มปุ่ม "ลงชื่อแทน" ให้แสดงในทุกรายการ เพื่อเปิดสิทธิ์ให้แก้ไขต่อไปได้เรื่อยๆ
         let replaceInfoHtml = `
           <div class="text-right flex flex-col items-end gap-1.5">
-            ${duty.isAvailable && !isQueued ? 
-              `<span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-100">เวรว่าง</span>` : 
+            ${duty.isAvailable && !isQueued ?  
+              `<span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-100">เวรว่าง</span>` :  
               `<div class="text-right">
                 <p class="text-[9px] text-slate-400 font-medium">ผู้ปฏิบัติงานแทน</p>
                 <p class="text-xs font-bold ${isQueued ? 'text-amber-500' : 'text-teal-600'}">${activeDutyUser}</p>
@@ -355,7 +386,6 @@
     }
 
     function openReplaceModal(dateKey, approvedUser, subIndex) {
-      // 1. ค้นหาชื่อผู้ปฏิบัติงานแทนปัจจุบัน (เช็กจากคิว Batch ก่อน ถ้าไม่มีให้ใช้จาก Server)
       const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
       let currentActiveUser = "";
     
@@ -368,22 +398,14 @@
         }
       }
     
-      // 2. เตรียมโครงสร้าง HTML Options ของ Dropdown Select
       let selectOptionsHtml = `<option value="" disabled selected>-- เลือกรายชื่อผู้ขึ้นแทน --</option>`;
     
-      // 3. 🎯 บริหารจัดการเงื่อนไขการแสดงผลตัวเลือก
-      // กรณี ก: ไม่มีรายชื่อต้นเวร (approvedUser ว่างเปล่า) ให้พ่นรายชื่อเจ้าหน้าที่ทั้งหมดออกมาเลย
       if (!approvedUser || approvedUser.trim() === "" || approvedUser === "ไม่ระบุต้นเวร") {
         allStaffList.forEach(staffName => {
           selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
         });
-      } 
-      // กรณี ข: มีรายชื่อต้นเวรอยู่แล้ว
-      else {
-        // เพิ่มตัวเลือกพิเศษ "**ขึ้นปฏิบัติงานเอง**" ไว้ที่บรรทัดบนสุด
+      } else {
         selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง" class="font-bold text-emerald-600">➔ **ขึ้นปฏิบัติงานเอง**</option>`;
-        
-        // กรองรายชื่อทั้งหมดโดย "ห้ามซ้ำกับชื่อเจ้าหน้าที่ต้นเวร (approvedUser)"
         let filteredStaff = allStaffList.filter(name => name !== approvedUser);
         
         filteredStaff.forEach(staffName => {
@@ -395,7 +417,6 @@
       const displayDateParts = dateKey.split('-');
       const formattedThaiDate = `${displayDateParts[2]} ${thaiMonths[parseInt(displayDateParts[1])]} ${parseInt(displayDateParts[0]) + 543}`;
     
-      // 4. 🎉 เปิดหน้าต่าง Modal ตัวจริงขึ้นมาแสดงผลทันทีแบบไม่มีดีเลย์
       Swal.fire({
         title: '<span class="text-sm font-extrabold text-slate-700">จัดสรรผู้ปฏิบัติงานแทน</span>',
         html: `
@@ -453,7 +474,6 @@
       });
     }
     
-    // ฟังก์ชันจัดการแสดงผลบล็อกข้อมูลคิวรอการบันทึก (Batch Queue UI Manager)
     function updateBatchQueueUI() {
       const queueContainer = document.getElementById('batch-queue-container');
       const queueList = document.getElementById('batch-queue-list');
@@ -506,7 +526,6 @@
       }
     }
 
-    // 📦 ส่งข้อมูลการแก้ไขทั้งหมดแบบมัดรวม (Batch) ไปอัปเดตลงชีทครั้งเดียว
     async function submitBatchChangesToServer() {
       const keys = Object.keys(batchUpdatesQueue);
       if (keys.length === 0) return;
@@ -515,7 +534,6 @@
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> กำลังอัปเดตฐานข้อมูลสเปรดชีต...`;
 
-      // แปลงข้อมูล Object Queue ให้เป็นรูปแบบ Array ส่งออก
       const payloadData = keys.map(key => batchUpdatesQueue[key]);
 
       try {
@@ -524,7 +542,7 @@
           headers: { "Content-Type": "text/plain" },
           body: JSON.stringify({
             action: "saveBatchDuties",
-            updatedBy: currentUser.name,
+            updatedBy: (typeof currentUser !== 'undefined' ? currentUser.name : "System"),
             batchList: payloadData
           })
         });
@@ -538,9 +556,9 @@
             customClass: { popup: 'rounded-2xl' }
           });
           
-          batchUpdatesQueue = {}; // ล้างข้อมูลคิวหลังเซฟสำเร็จ
+          batchUpdatesQueue = {}; 
           updateBatchQueueUI();
-          fetchDutiesFromSheet(); // โหลดข้อมูลสดๆ ใหม่จาก Google Sheet มาวาดหน้าปฏิทินใหม่
+          fetchDutiesFromSheet(); 
         } else {
           throw new Error(resData.message || "เซิร์ฟเวอร์ปฏิเสธการบันทึก");
         }
@@ -569,3 +587,6 @@
     }
   })();
 </script>
+  
+   
+    
