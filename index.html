@@ -131,6 +131,7 @@ async function handleLogin(e) {
           body: JSON.stringify({ action: "getDuties", userRole: data.employeeRole, year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
         });
         const staffData = await staffRes.json();
+        console.log(staffData)
         if (staffData.success && staffData.allStaff) {
           window.globalAllStaff = staffData.allStaff;
           console.log(`✅ โหลดรายชื่อจากล็อกอินสำเร็จ: ${window.globalAllStaff.length} คน`);
