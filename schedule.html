@@ -401,28 +401,49 @@
       }
     
       let selectOptionsHtml = `<option value="" disabled selected>-- เลือกรายชื่อผู้ขึ้นแทน --</option>`;
-    
-      // === ปรับปรุงเงื่อนไขการแสดงผลรายชื่อเจ้าหน้าที่ตรงนี้ ===
-      if (!approvedUser || approvedUser.trim() === "" || approvedUser === "ไม่ระบุต้นเวร") {
-        // กรณีไม่มีระบุต้นเวร หรือเป็น "ไม่ระบุต้นเวร" -> แสดงรายชื่อเจ้าหน้าที่ทุกคน
-        allStaffList.forEach(staffName => {
-          const isCurrentReplace = (staffName === currentActiveUser) ? " (เลือกอยู่ปัจจุบัน)" : "";
-          selectOptionsHtml += `<option value="${staffName}" ${staffName === currentActiveUser ? 'selected' : ''}>${staffName}${isCurrentReplace}</option>`;
+      
+      const cleanApprovedUser = approvedUser ? approvedUser.trim() : "";
+      
+      // 💡 [จุดดักสำคัญ]: ดึงรายชื่อจาก window.globalAllStaff เสมอเพื่อป้องกันสคริปต์หลุด Scope
+      if (window.globalAllStaff && window.globalAllStaff.length > 0) {
+        allStaffList = window.globalAllStaff;
+      }
+
+      // 💡 [Fallback] ดักกรณีเกิดข้อผิดพลาดทางเครือข่ายแล้วยังไม่มีข้อมูล ให้ดึงชื่อจากตารางเท่าที่มี
+      if (!allStaffList || allStaffList.length === 0) {
+        const uniqueStaff = new Set();
+        Object.values(serverDuties).forEach(duties => {
+          duties.forEach(d => {
+            if (d.approvedUser && d.approvedUser !== "ไม่ระบุต้นเวร") uniqueStaff.add(d.approvedUser.trim());
+            if (d.replaceUser && d.replaceUser !== "ยังไม่มีผู้แทน") uniqueStaff.add(d.replaceUser.trim());
+          });
         });
+        allStaffList = Array.from(uniqueStaff);
+      }
+
+      // === จัดการ Logic การแสดงผล Dropdown Option ===
+      if (!cleanApprovedUser || cleanApprovedUser === "" || cleanApprovedUser === "ไม่ระบุต้นเวร") {
+        // เงื่อนไขที่ 1: ไม่ระบุต้นเวร -> วนลูปแสดงรายชื่อทุกคน
+        if (allStaffList.length > 0) {
+          allStaffList.forEach(staffName => {
+            const isCurrentReplace = (staffName === currentActiveUser) ? " (เลือกอยู่ปัจจุบัน)" : "";
+            selectOptionsHtml += `<option value="${staffName}" ${staffName === currentActiveUser ? 'selected' : ''}>${staffName}${isCurrentReplace}</option>`;
+          });
+        } else {
+          selectOptionsHtml += `<option value="" disabled>❌ ไม่พบรายชื่อพนักงานในระบบ</option>`;
+        }
       } else {
-        // กรณีมีชื่อต้นเวรชัดเจน -> แสดงปุ่มขึ้นปฏิบัติงานเอง และแสดงรายชื่อทุกคนยกเว้นชื่อต้นเวรคนนั้น
+        // เงื่อนไขที่ 2: มีชื่อต้นเวร -> แสดงปุ่ม "ขึ้นปฏิบัติงานเอง" และกรองเอาชื่อต้นเวรออก
         selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง" class="font-bold text-emerald-600">➔ **ขึ้นปฏิบัติงานเอง**</option>`;
         
-        // กรองเอาชื่อต้นเวรออก
-        let filteredStaff = allStaffList.filter(name => name !== approvedUser);
+        let filteredStaff = allStaffList.filter(name => name !== cleanApprovedUser);
         
-        // ลูปสร้าง Option จากรายชื่อที่ถูกกรองแล้ว (จุดที่เดิมตกหล่นไป)
         filteredStaff.forEach(staffName => {
           const isCurrentReplace = (staffName === currentActiveUser) ? " (เลือกอยู่ปัจจุบัน)" : "";
           selectOptionsHtml += `<option value="${staffName}" ${staffName === currentActiveUser ? 'selected' : ''}>${staffName}${isCurrentReplace}</option>`;
         });
       }
-      // ===================================================
+      // ===========================================
     
       const displayDateParts = dateKey.split('-');
       const formattedThaiDate = `${displayDateParts[2]} ${thaiMonths[parseInt(displayDateParts[1])]} ${parseInt(displayDateParts[0]) + 543}`;
@@ -432,7 +453,7 @@
         html: `
           <div class="text-left text-xs text-slate-500 space-y-2 p-1">
             <p><b>วันที่ปฏิบัติงาน:</b> ${formattedThaiDate}</p>
-            <p><b>เจ้าหน้าที่ต้นเวร:</b> <span class="text-slate-800 font-bold">${approvedUser || "ไม่มีรายชื่อต้นเวร (แสดงรายชื่อทั้งหมด)"}</span></p>
+            <p><b>เจ้าหน้าที่ต้นเวร:</b> <span class="text-slate-800 font-bold">${cleanApprovedUser || "ไม่มีรายชื่อต้นเวร (แสดงรายชื่อทั้งหมด)"}</span></p>
             ${currentActiveUser ? `<p><b>ผู้ขึ้นแทนปัจจุบัน:</b> <span class="text-amber-600 font-bold">${currentActiveUser}</span></p>` : ''}
             <label class="block mt-4 mb-1 font-bold text-slate-700">เลือกผู้รับผิดชอบเวรแทนคนใหม่:</label>
             <select id="swal-select-replace-user" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-hidden focus:ring-2 focus:ring-[#004b8d]">
