@@ -81,40 +81,61 @@
       }
     }
 
-    // ฟังก์ชันจัดการล็อกอิน (ชุดเดียว ไม่ซ้ำซ้อน)
-    async function handleLogin(e) {
-      e.preventDefault();
-      const user = document.getElementById('username').value;
-      const pass = document.getElementById('password').value;
-      const btn = document.getElementById('submitBtn');
+// ฟังก์ชันจัดการล็อกอิน (ชุดเดียว ไม่ซ้ำซ้อน)
+async function handleLogin(e) {
+  if (e) e.preventDefault();
+  
+  const userVal = document.getElementById('login-username').value.trim();
+  const passVal = document.getElementById('login-password').value.trim();
+  
+  if (!userVal || !passVal) {
+    Swal.fire({ icon: 'warning', title: 'กรุณากรอกข้อมูลให้ครบถ้วน', customClass: { popup: 'rounded-2xl' } });
+    return;
+  }
+  
+  showSystemPrepLoader();
+  
+  try {
+    const response = await fetch(GAS_WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "login", username: userVal, password: passVal })
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      window.currentUser.name = data.employeeName;
+      window.currentUser.role = data.employeeRole;
       
-      btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> กำลังตรวจสอบ...`;
-
+      // 💡 [โหลดรายชื่อทันทีหลังล็อกอินสำเร็จ]:
       try {
-        const res = await fetch(GAS_WEB_APP_URL, {
+        const staffRes = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "login", username: user, password: pass })
+          body: JSON.stringify({ action: "getDuties", userRole: data.employeeRole, year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
         });
-        const data = await res.json();
-        
-        if (data.success) {
-          window.currentUser.name = data.employeeName;
-          window.currentUser.role = data.employeeRole;
-          navigateTo('schedule.html');
-        } else {
-          alert(data.message);
-          btn.disabled = false;
-          btn.innerHTML = `<span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
+        const staffData = await staffRes.json();
+        if (staffData.success && staffData.allStaff) {
+          window.globalAllStaff = staffData.allStaff;
+          console.log(`✅ โหลดรายชื่อจากล็อกอินสำเร็จ: ${window.globalAllStaff.length} คน`);
         }
-      } catch (err) {
-        alert("การเชื่อมโยงระบบคลาวด์ Apps Script ขัดข้อง กรุณาลองใหม่อีกครั้ง");
-        btn.disabled = false;
-        btn.innerHTML = `<span>เข้าสู่ระบบ</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>`;
+      } catch (staffErr) {
+        console.error("โหลดรายชื่อพนักงานล่วงหน้าไม่สำเร็จ:", staffErr);
       }
-    }
 
+      // ดึงรายชื่อเสร็จแล้วค่อยเปลี่ยนหน้า
+      navigateTo('schedule.html');
+    } else {
+      Swal.fire({ icon: 'error', title: 'เข้าสู่ระบบไม่สำเร็จ', text: data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', customClass: { popup: 'rounded-2xl' } });
+    }
+  } catch (err) {
+    console.error("Login Error:", err);
+    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ', text: 'กรุณาลองใหม่อีกครั้ง', customClass: { popup: 'rounded-2xl' } });
+  } finally {
+    hideSystemPrepLoader();
+  }
+}
+    
     // ฟังก์ชันจัดการลงทะเบียน (ชุดเดียว ไม่ซ้ำซ้อน)
     async function handleRegister(e) {
       e.preventDefault();
