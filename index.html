@@ -33,6 +33,9 @@
     // เปลี่ยนมาผูกเข้ากับ window โดยตรงเพื่อให้ไฟล์อื่นเรียกข้ามไปมาได้
     window.currentUser = { name: "", role: "" };
 
+    window.globalMonthsConfig = [];
+    window.globalAllStaff = []; // 💡 เพิ่มตัวแปรนี้เพื่อเก็บรายชื่อพนักงานจากชีทกลาง
+
     // เปลี่ยนมาผูกเข้ากับ window โดยตรงเพื่อให้ไฟล์อื่นเรียกข้ามไปมาได้
     const now = new Date();
     window.globalMonthsConfig = [
