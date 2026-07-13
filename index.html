@@ -128,7 +128,7 @@ async function handleLogin(e) {
         const staffRes = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "getDuties")
+          body: JSON.stringify({ action: "getDuties"
         });
         const staffData = await staffRes.json();
         console.log(staffData)
