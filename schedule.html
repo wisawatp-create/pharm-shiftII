@@ -215,30 +215,29 @@
       return "Pharmacist"; // เผื่อกรณีดึงไม่เจอ ให้ Fallback เป็นเภสัชกรไว้ก่อนระบบจะได้ไม่ Crash ล็อกหน้านิ่ง
     }
 
-    async function fetchAllStaff() {
-      // 1. ถ้าหน้า index.html โหลดมาเก็บไว้ให้แล้ว ดึงมาใช้ได้ทันที ไม่ต้อง Fetch ใหม่
-      if (window.globalAllStaff && window.globalAllStaff.length > 0) {
-        allStaffList = window.globalAllStaff;
-        console.log(`🎯 ดึงรายชื่อจาก Global Cache สำเร็จ: ${allStaffList.length} คน`);
-        return;
-      }
-      
-      // 2. [Fallback] หากรีเฟรชหน้าจอแล้ว Cache หาย ให้ดึงจาก Server ตามปกติ
+    async function fetchAllStaff(){
+      console.log("📡 เริ่มต้นดึงข้อมูลรายชื่อเจ้าหน้าที่ทั้งหมด..."); 
       const currentRole = getUserRoleSafe();
-      try {
+      try {        
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({ action: "getDuties", userRole: currentRole, year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
+          body: JSON.stringify({ 
+            action: "getDuties",
+            userRole: currentRole,
+            dutyType: selectedDutyType,
+            year: monthsConfig[activeMonthIndex].year,
+            month: monthsConfig[activeMonthIndex].month
+          })
         });
         const data = await response.json();
-        if (data.success && data.allStaff) {
+        if (data.success && data.allStaff) {                    
           allStaffList = data.allStaff;
-          window.globalAllStaff = data.allStaff; // เก็บเข้าแคชไว้ด้วย
-          console.log(`⚡ ลิงก์ตรงดึงรายชื่อสำรองสำเร็จ: ${allStaffList.length} คน`);
+          window.globalAllStaff = data.allStaff; // 💡 เก็บเข้า Global Cache
+          console.log("✅ โหลดรายชื่อจากชีทกลางสำเร็จจำนวน:", allStaffList.length, "คน");
         }
       } catch (err) {
-        console.error("ไม่สามารถดึงรายชื่อเจ้าหน้าที่ได้:", err);
+        console.error("ระบบติดต่อฐานข้อมูลรายชื่อบุคลากรขัดข้อง:", err);
       }
     }
 
@@ -269,6 +268,7 @@
           // 🔥 อัปเดตข้อมูลรายชื่อไปในตัวป้องกันกรณีฟังก์ชันดึงรายชื่อรันหลุดตำแหน่ง
           if (data.allStaff && data.allStaff.length > 0) {
             allStaffList = data.allStaff;
+            window.globalAllStaff = data.allStaff;
           }
           
           renderCalendar(targetTime.year, targetTime.month);
