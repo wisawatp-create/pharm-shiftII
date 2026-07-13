@@ -400,19 +400,27 @@
     
       let selectOptionsHtml = `<option value="" disabled selected>-- เลือกรายชื่อผู้ขึ้นแทน --</option>`;
     
+      // === ปรับปรุงเงื่อนไขการแสดงผลรายชื่อเจ้าหน้าที่ตรงนี้ ===
       if (!approvedUser || approvedUser.trim() === "" || approvedUser === "ไม่ระบุต้นเวร") {
+        // กรณีไม่มีระบุต้นเวร หรือเป็น "ไม่ระบุต้นเวร" -> แสดงรายชื่อเจ้าหน้าที่ทุกคน
         allStaffList.forEach(staffName => {
-          selectOptionsHtml += `<option value="${staffName}">${staffName}</option>`;
+          const isCurrentReplace = (staffName === currentActiveUser) ? " (เลือกอยู่ปัจจุบัน)" : "";
+          selectOptionsHtml += `<option value="${staffName}" ${staffName === currentActiveUser ? 'selected' : ''}>${staffName}${isCurrentReplace}</option>`;
         });
       } else {
+        // กรณีมีชื่อต้นเวรชัดเจน -> แสดงปุ่มขึ้นปฏิบัติงานเอง และแสดงรายชื่อทุกคนยกเว้นชื่อต้นเวรคนนั้น
         selectOptionsHtml += `<option value="ขึ้นปฏิบัติงานเอง" class="font-bold text-emerald-600">➔ **ขึ้นปฏิบัติงานเอง**</option>`;
+        
+        // กรองเอาชื่อต้นเวรออก
         let filteredStaff = allStaffList.filter(name => name !== approvedUser);
         
+        // ลูปสร้าง Option จากรายชื่อที่ถูกกรองแล้ว (จุดที่เดิมตกหล่นไป)
         filteredStaff.forEach(staffName => {
           const isCurrentReplace = (staffName === currentActiveUser) ? " (เลือกอยู่ปัจจุบัน)" : "";
           selectOptionsHtml += `<option value="${staffName}" ${staffName === currentActiveUser ? 'selected' : ''}>${staffName}${isCurrentReplace}</option>`;
         });
       }
+      // ===================================================
     
       const displayDateParts = dateKey.split('-');
       const formattedThaiDate = `${displayDateParts[2]} ${thaiMonths[parseInt(displayDateParts[1])]} ${parseInt(displayDateParts[0]) + 543}`;
