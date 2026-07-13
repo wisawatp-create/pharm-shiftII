@@ -97,8 +97,8 @@
         const data = await res.json();
         
         if (data.success) {
-          currentUser.name = data.employeeName;
-          currentUser.role = data.employeeRole;
+          window.currentUser.name = data.employeeName;
+          window.currentUser.role = data.employeeRole;
           navigateTo('schedule.html');
         } else {
           alert(data.message);
