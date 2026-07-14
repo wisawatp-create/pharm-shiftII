@@ -126,11 +126,13 @@ async function handleLogin(e) {
       // 💡 [โหลดรายชื่อทันทีหลังล็อกอินสำเร็จ]:
       try {
         const staffRes = await fetch(GAS_WEB_APP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify({action: "getAllStaff",
-            userRole: data.employeeRole // ใช้ค่าบทบาทที่ได้รับตอบกลับมาจากข้อมูลล็อกอินโดยตรง
-        })};
+              method: "POST",
+              headers: { "Content-Type": "text/plain" },
+              body: JSON.stringify({ 
+                action: "getAllStaff",
+                userRole: data.employeeRole 
+              })
+            });
         const staffData = await staffRes.json();
         console.log(staffData)
         if (staffData.success && staffData.allStaff) {
