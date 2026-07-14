@@ -566,7 +566,8 @@
       btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> กำลังอัปเดตฐานข้อมูลสเปรดชีต...`;
 
       const payloadData = keys.map(key => batchUpdatesQueue[key]);
-
+      const currentRole = getUserRoleSafe();
+      
       try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: "POST",
@@ -574,6 +575,7 @@
           body: JSON.stringify({
             action: "saveBatchDuties",
             updatedBy: (typeof currentUser !== 'undefined' ? currentUser.name : "System"),
+            userRole: currentRole,
             batchList: payloadData
           })
         });
