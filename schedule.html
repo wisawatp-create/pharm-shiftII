@@ -579,7 +579,8 @@
             batchList: payloadData
           })
         });
-        
+        console.log(payloadData);
+        console.log(response);
         const resData = await response.json();
         if (resData.success) {
           Swal.fire({
