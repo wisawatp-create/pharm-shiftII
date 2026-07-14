@@ -110,6 +110,12 @@ async function handleLogin(e) {
   }
   
   showSystemPrepLoader();
+  const loginBtn = document.getElementById('btn-login'); // สมมติว่าปุ่ม ID นี้
+    
+  // เปลี่ยนปุ่มเป็นสถานะ Loading
+  loginBtn.disabled = true;
+  loginBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> กำลังตรวจสอบข้อมูล...`;
+  
   
   try {
     const response = await fetch(GAS_WEB_APP_URL, {
@@ -122,6 +128,7 @@ async function handleLogin(e) {
     if (data.success) {
       window.currentUser.name = data.employeeName;
       window.currentUser.role = data.employeeRole;
+      loginBtn.innerHTML = `<i class="fa-solid fa-sync animate-spin mr-2"></i> กำลังเตรียมหน้าตารางเวร...`;
       
       // 💡 [โหลดรายชื่อทันทีหลังล็อกอินสำเร็จ]:
       try {
@@ -153,6 +160,9 @@ async function handleLogin(e) {
     Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ', text: 'กรุณาลองใหม่อีกครั้ง', customClass: { popup: 'rounded-2xl' } });
   } finally {
     hideSystemPrepLoader();
+    // หากล้มเหลว ให้คืนค่าปุ่มกลับมา
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = `เข้าสู่ระบบ`;
   }
 }
     
