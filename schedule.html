@@ -566,13 +566,13 @@
       btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin"></i> กำลังอัปเดตฐานข้อมูลสเปรดชีต...`;
 
       // แปลงข้อมูล queue ให้เป็น Array ของ Object อย่างชัดเจน
-      const payloadData = keys.map(key => ({
+      const payloadData = keys.map(key => ([{
         dateKey: batchUpdatesQueue[key].dateKey,
         dutyType: batchUpdatesQueue[key].dutyType,
         subIndex: batchUpdatesQueue[key].subIndex,
         approvedUser: batchUpdatesQueue[key].approvedUser,
         replaceUser: batchUpdatesQueue[key].replaceUser
-      }));
+      })]);
       const currentRole = getUserRoleSafe();
       
       try {
