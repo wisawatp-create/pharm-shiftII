@@ -349,7 +349,7 @@
       
         // 💡 1. สร้างตัวแปรมาเก็บข้อความ HTML ทั้งหมดไว้ก่อน
         let finalHtml = "";
-      
+        console.log(dutiesList)
         dutiesList.forEach((duty, subIndex) => {
           const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
           const activeDutyUser = batchUpdatesQueue[batchKey] ? batchUpdatesQueue[batchKey].replaceUser : (duty.isAvailable ? "ยังไม่มีผู้แทน" : duty.replaceUser);
