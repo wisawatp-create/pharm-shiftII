@@ -492,7 +492,7 @@
           batchUpdatesQueue[batchKey] = {
             dateKey: dateKey,
             dutyType: selectedDutyType,
-            subIndex: subIndex,
+            subIndex: subIndex +1,// 🔥 บวก 1 ตรงนี้หาก Google Sheets ของคุณนับลำดับเวรเริ่มที่ 1
             approvedUser: approvedUser,
             replaceUser: result.value
           };
