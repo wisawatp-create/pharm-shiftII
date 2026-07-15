@@ -329,7 +329,7 @@
     }
 
     function selectDate(year, month, day) {
-      const dateKey = `${year}-${month+1}-${day}`;
+      const dateKey = `${year}-${month}-${day}`;
       selectedDate = dateKey;
       renderCalendar(year, month);
       document.getElementById('selected-date-label').innerText = `${day} ${thaiMonths[month]} ${year + 543}`;
