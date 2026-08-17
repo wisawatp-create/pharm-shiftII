@@ -350,7 +350,72 @@
         // 💡 1. สร้างตัวแปรมาเก็บข้อความ HTML ทั้งหมดไว้ก่อน
         let finalHtml = "";
         console.log(dutiesList)
+         //แก้ไขเพิ่มเติม
         dutiesList.forEach((duty, subIndex) => {
+          const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
+          const activeDutyUser = batchUpdatesQueue[batchKey] ? batchUpdatesQueue[batchKey].replaceUser : (duty.isAvailable ? "ยังไม่มีผู้แทน" : duty.replaceUser);
+          const isQueued = batchUpdatesQueue[batchKey] ? true : false;
+        
+          // 1. เพิ่ม Logic เช็กสถานะการแทนเพื่อนำไปสร้าง Badge/ข้อความแสดงผล
+          let replacementStatusHtml = "";
+          if (activeDutyUser && activeDutyUser !== "ยังไม่มีผู้แทน" && activeDutyUser !== "ขึ้นปฏิบัติงานเอง") {
+            replacementStatusHtml = `
+              <div class="mt-1 flex items-center gap-1 text-[11px]">
+                <span class="text-slate-400 font-medium">แทนโดย:</span>
+                <span class="font-bold ${isQueued ? 'text-amber-600' : 'text-emerald-600'} bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                  <i class="fa-solid fa-user-check text-[10px] mr-0.5"></i> ${activeDutyUser}
+                </span>
+              </div>`;
+          } else if (activeDutyUser === "ขึ้นปฏิบัติงานเอง") {
+            replacementStatusHtml = `
+              <div class="mt-1 flex items-center gap-1 text-[11px]">
+                <span class="font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100">
+                  <i class="fa-solid fa-user-shield text-[10px] mr-0.5"></i> ขึ้นปฏิบัติงานเอง
+                </span>
+              </div>`;
+          }
+        
+          let replaceInfoHtml = `
+            <div class="text-right flex flex-col items-end gap-1.5">
+              ${duty.isAvailable && !isQueued ?  
+                `<span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-100">เวรว่าง</span>` :  
+                `<div class="text-right">
+                  <p class="text-[9px] text-slate-400 font-medium">สถานะเวรแทน</p>
+                  <p class="text-xs font-bold ${isQueued ? 'text-amber-500' : 'text-teal-600'}">${isQueued ? 'รอการบันทึก' : 'อัปเดตแล้ว'}</p>
+                 </div>`
+              }
+              <button onclick="openReplaceModal('${dateKey}', '${duty.approvedUser || ''}', ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
+                <i class="fa-solid fa-user-pen"></i> ลงชื่อแทน
+              </button>
+            </div>`;
+        
+              const borderBadgeColor = duty.badge === 'ชบด' ? 'border-l-[#004b8d]' : duty.badge === 'บ่าย' ? 'border-l-teal-500' : 'border-l-red-500';
+            
+              // 2. ปรับการจัดวาง HTML ฝั่งซ้าย นำ replacementStatusHtml ไปแสดงใต้ชื่อต้นเวร
+              finalHtml += `
+                <div class="bg-white rounded-2xl p-3 border-l-4 ${borderBadgeColor} shadow-sm border border-slate-100 flex justify-between items-center ${isQueued ? 'bg-amber-50/40 ring-1 ring-amber-200' : ''}">
+                  <div class="flex items-center gap-3">
+                    <div class="bg-slate-50 rounded-xl px-2.5 py-1.5 text-center border border-slate-100">
+                      <p class="text-[9px] text-slate-400 font-bold">${thaiDaysShort[new Date(year, month, day).getDay()]}</p>
+                      <p class="text-base font-extrabold text-slate-700 leading-none">${day < 10 ? '0'+day : day}</p>
+                    </div>
+                    <div>
+                      <h4 class="font-bold text-slate-800 text-sm">${duty.approvedUser || "ไม่ระบุต้นเวร"}</h4>
+                      <p class="text-[11px] text-slate-400 font-medium"><i class="fa-regular fa-clock text-[10px]"></i> ${duty.time}</p>
+                      
+                      <!-- 🌟 ส่วนที่เพิ่มขึ้นมา: แสดงชื่อผู้ปฏิบัติงานแทนใต้เวลา -->
+                      ${replacementStatusHtml}
+                    </div>
+                  </div>
+                  <div>
+                    ${replaceInfoHtml}
+                  </div>
+                </div>`;
+            });
+
+      
+        /*
+          dutiesList.forEach((duty, subIndex) => {
           const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
           const activeDutyUser = batchUpdatesQueue[batchKey] ? batchUpdatesQueue[batchKey].replaceUser : (duty.isAvailable ? "ยังไม่มีผู้แทน" : duty.replaceUser);
           const isQueued = batchUpdatesQueue[batchKey] ? true : false;
@@ -389,9 +454,9 @@
               </div>
             </div>`;
         });
-      
+      */
         // 💡 3. นำ HTML ที่สมบูรณ์แบบไม่ถูกรบกวนระหว่างลูป ไปใส่ใน container ทีเดียว
-        container.innerHTML = finalHtml;
+        container.innerHTML = finalHtml; 
       }
 
 
