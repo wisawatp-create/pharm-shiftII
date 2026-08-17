@@ -367,10 +367,11 @@
                 </span>
               </div>`;
           } else if (activeDutyUser === "ขึ้นปฏิบัติงานเอง") {
-            replacementStatusHtml = `
+            replacementStatusHtml = `              
               <div class="mt-1 flex items-center gap-1 text-[11px]">
-                <span class="font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100">
-                  <i class="fa-solid fa-user-shield text-[10px] mr-0.5"></i> ขึ้นปฏิบัติงานเอง
+                <span class="text-slate-400 font-medium">แทนโดย:</span>
+                <span class="font-bold ${isQueued ? 'text-amber-600' : 'text-emerald-600'} bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+                  <i class="fa-solid fa-user-check text-[10px] mr-0.5"></i> ${activeDutyUser}
                 </span>
               </div>`;
           }
