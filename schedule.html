@@ -351,57 +351,52 @@
         let finalHtml = "";
         console.log(dutiesList)
          //แก้ไขเพิ่มเติม
-        dutiesList.forEach((duty, subIndex) => {
+       dutiesList.forEach((duty, subIndex) => {
             const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
           
-            // 1. ดึงข้อความ replaceUser เดิม ตัดช่องว่าง
+            // 1. ดึงค่า replaceUser จากชีทและตัดช่องว่าง
             let rawReplaceUser = (duty.replaceUser || "").trim();
           
-            // ดักข้อความที่ไม่ใช่ชื่อคนจริง เพื่อตั้งเป็นค่าว่างไว้ก่อน
-            const invalidNames = ["", "ยังไม่มีผู้แทน", "แทน/ขึ้นเวรแทน", "ขึ้นเวรแทน", "แทน", "null", "undefined"];
-            if (invalidNames.includes(rawReplaceUser)) {
-              rawReplaceUser = "ยังไม่มีผู้แทน";
-            }
+            // 2. ลิสต์คำที่ระบบมักคืนค่ามาที่ไม่ใช่ชื่อคนจริงๆ
+            const genericTerms = ["ขึ้นเวรแทน", "แทน/ขึ้นเวรแทน", "ขึ้นปฏิบัติงานเอง", "แทน"];
+            const emptyTerms = ["", "ยังไม่มีผู้แทน", "null", "undefined"];
           
-            // 2. ดึงค่าชื่อผู้รับหน้าที่แทน
             let activeDutyUser = "";
+          
+            // ลำดับการเลือกชื่อมาแสดง:
+            // 1) ถ้ามีอยู่ใน Queue ค้างบันทึก
             if (batchUpdatesQueue[batchKey]) {
               activeDutyUser = batchUpdatesQueue[batchKey].replaceUser;
-            } else {
+            } 
+            // 2) ถ้าในชีทส่งมาเป็นคำว่า "ขึ้นเวรแทน" / "ขึ้นปฏิบัติงานเอง" ให้เอาชื่อต้นเวรมาแสดง
+            else if (genericTerms.includes(rawReplaceUser)) {
+              activeDutyUser = duty.approvedUser || "เจ้าหน้าที่ต้นเวร";
+            } 
+            // 3) ถ้าในชีทส่งมาเป็นชื่อคนจริงๆ
+            else if (!emptyTerms.includes(rawReplaceUser)) {
               activeDutyUser = rawReplaceUser;
+            } 
+            // 4) ถ้าไม่มีข้อมูลเลย
+            else {
+              activeDutyUser = "ยังไม่มีผู้แทน";
+            }
+          
+            // กรณีที่เลือกใน Queue หรือในชีทระบุชัดว่าเป็นการขึ้นปฏิบัติงานเอง
+            if (activeDutyUser === "ขึ้นปฏิบัติงานเอง") {
+              activeDutyUser = duty.approvedUser || "เจ้าหน้าที่ต้นเวร";
             }
           
             const isQueued = Boolean(batchUpdatesQueue[batchKey]);
           
-            // 3. กำหนดชื่อที่จะนำไปแสดงผลบนหน้าจอ
-            let displayName = "";
-            let badgeStyle = "";
-            let iconHtml = "";
-          
-            if (activeDutyUser === "ขึ้นปฏิบัติงานเอง") {
-              // กรณีเลือก "ขึ้นปฏิบัติงานเอง" ให้ดึงชื่อเจ้าหน้าที่ต้นเวรมาแสดงผล
-              displayName = duty.approvedUser || "เจ้าหน้าที่ต้นเวร";
-              badgeStyle = isQueued 
-                ? 'text-amber-700 bg-amber-50 border-amber-200' 
-                : 'text-blue-700 bg-blue-50 border-blue-100';
-              iconHtml = `<i class="fa-solid fa-user-shield text-[10px] mr-1"></i>`;
-            } else if (activeDutyUser && activeDutyUser !== "ยังไม่มีผู้แทน") {
-              // กรณีระบุชื่อผู้ขึ้นแทนคนใหม่
-              displayName = activeDutyUser;
-              badgeStyle = isQueued 
-                ? 'text-amber-700 bg-amber-50 border-amber-200' 
-                : 'text-emerald-700 bg-emerald-50 border-emerald-100';
-              iconHtml = `<i class="fa-solid fa-user-check text-[10px] mr-1"></i>`;
-            }
-          
-            // 4. สร้าง HTML แสดงชื่อผู้ปฏิบัติงานแทน
+            // 3. กำหนดรูปแบบการแสดงผล Badge
             let replacementStatusHtml = "";
-            if (displayName) {
+          
+            if (activeDutyUser !== "ยังไม่มีผู้แทน") {
               replacementStatusHtml = `
                 <div class="mt-1 flex items-center gap-1 text-[11px]">
-                  <span class="text-slate-400 font-medium">ปฏิบัติงานแทน:</span>
-                  <span class="font-bold ${badgeStyle} px-2 py-0.5 rounded-md border inline-flex items-center">
-                    ${iconHtml} ${displayName}
+                  <span class="text-slate-400 font-medium">ผู้ปฏิบัติงานแทน:</span>
+                  <span class="font-bold ${isQueued ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-100'} px-2 py-0.5 rounded-md border inline-flex items-center">
+                    <i class="fa-solid fa-user-check text-[10px] mr-1"></i> ${activeDutyUser}
                   </span>
                 </div>`;
             } else {
