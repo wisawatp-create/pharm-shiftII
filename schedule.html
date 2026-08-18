@@ -351,92 +351,8 @@
         let finalHtml = "";
         console.log(dutiesList)
          //แก้ไขเพิ่มเติม
-       dutiesList.forEach((duty, subIndex) => {
-            const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
-          
-            // 1. ดึงค่า replaceUser จากชีทและตัดช่องว่าง
-            let rawReplaceUser = (duty.replaceUser || "").trim();
-          
-            // 2. ลิสต์คำที่ระบบมักคืนค่ามาที่ไม่ใช่ชื่อคนจริงๆ
-            const genericTerms = ["ขึ้นเวรแทน", "แทน/ขึ้นเวรแทน", "ขึ้นปฏิบัติงานเอง", "แทน"];
-            const emptyTerms = ["", "ยังไม่มีผู้แทน", "null", "undefined"];
-          
-            let activeDutyUser = "";
-          
-            // ลำดับการเลือกชื่อมาแสดง:
-            // 1) ถ้ามีอยู่ใน Queue ค้างบันทึก
-            if (batchUpdatesQueue[batchKey]) {
-              activeDutyUser = batchUpdatesQueue[batchKey].replaceUser;
-            } 
-            // 2) ถ้าในชีทส่งมาเป็นคำว่า "ขึ้นเวรแทน" / "ขึ้นปฏิบัติงานเอง" ให้เอาชื่อต้นเวรมาแสดง
-            else if (genericTerms.includes(rawReplaceUser)) {
-              activeDutyUser = duty.approvedUser || "เจ้าหน้าที่ต้นเวร";
-            } 
-            // 3) ถ้าในชีทส่งมาเป็นชื่อคนจริงๆ
-            else if (!emptyTerms.includes(rawReplaceUser)) {
-              activeDutyUser = rawReplaceUser;
-            } 
-            // 4) ถ้าไม่มีข้อมูลเลย
-            else {
-              activeDutyUser = "ยังไม่มีผู้แทน";
-            }
-          
-            // กรณีที่เลือกใน Queue หรือในชีทระบุชัดว่าเป็นการขึ้นปฏิบัติงานเอง
-            if (activeDutyUser === "ขึ้นปฏิบัติงานเอง") {
-              activeDutyUser = duty.approvedUser || "เจ้าหน้าที่ต้นเวร";
-            }
-          
-            const isQueued = Boolean(batchUpdatesQueue[batchKey]);
-          
-            // 3. กำหนดรูปแบบการแสดงผล Badge
-            let replacementStatusHtml = "";
-          
-            if (activeDutyUser !== "ยังไม่มีผู้แทน") {
-              replacementStatusHtml = `
-                <div class="mt-1 flex items-center gap-1 text-[11px]">
-                  <span class="text-slate-400 font-medium">ผู้ปฏิบัติงานแทน:</span>
-                  <span class="font-bold ${isQueued ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-emerald-700 bg-emerald-50 border-emerald-100'} px-2 py-0.5 rounded-md border inline-flex items-center">
-                    <i class="fa-solid fa-user-check text-[10px] mr-1"></i> ${activeDutyUser}
-                  </span>
-                </div>`;
-            } else {
-              replacementStatusHtml = `
-                <div class="mt-1 flex items-center gap-1 text-[11px]">
-                  <span class="text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100 inline-flex items-center">
-                    <i class="fa-solid fa-circle-exclamation text-[10px] mr-1"></i> ยังไม่มีผู้แทน
-                  </span>
-                </div>`;
-            }
-          
-            let replaceInfoHtml = `
-              <div class="text-right flex flex-col items-end gap-1.5">
-                ${isQueued ? `<span class="text-[9px] text-amber-500 font-bold animate-pulse"><i class="fa-solid fa-clock"></i> รอการบันทึก</span>` : ''}
-                <button onclick="openReplaceModal('${dateKey}', '${duty.approvedUser || ''}', ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
-                  <i class="fa-solid fa-user-pen"></i> ลงชื่อแทน
-                </button>
-              </div>`;
-          
-            const borderBadgeColor = duty.badge === 'ชบด' ? 'border-l-[#004b8d]' : duty.badge === 'บ่าย' ? 'border-l-teal-500' : 'border-l-red-500';
-          
-            finalHtml += `
-              <div class="bg-white rounded-2xl p-3 border-l-4 ${borderBadgeColor} shadow-sm border border-slate-100 flex justify-between items-center ${isQueued ? 'bg-amber-50/40 ring-1 ring-amber-200' : ''}">
-                <div class="flex items-center gap-3">
-                  <div class="bg-slate-50 rounded-xl px-2.5 py-1.5 text-center border border-slate-100">
-                    <p class="text-[9px] text-slate-400 font-bold">${thaiDaysShort[new Date(year, month, day).getDay()]}</p>
-                    <p class="text-base font-extrabold text-slate-700 leading-none">${day < 10 ? '0' + day : day}</p>
-                  </div>
-                  <div>
-                    <h4 class="font-bold text-slate-800 text-sm">${duty.approvedUser || "ไม่ระบุต้นเวร"}</h4>
-                    <p class="text-[11px] text-slate-400 font-medium"><i class="fa-regular fa-clock text-[10px]"></i> ${duty.time}</p>
-                    ${replacementStatusHtml}
-                  </div>
-                </div>
-                <div>
-                  ${replaceInfoHtml}
-                </div>
-              </div>`;
-          });
-        /*dutiesList.forEach((duty, subIndex) => {
+               
+        dutiesList.forEach((duty, subIndex) => {
           const batchKey = `${dateKey}_${selectedDutyType}_${subIndex}`;
           const activeDutyUser = batchUpdatesQueue[batchKey] ? batchUpdatesQueue[batchKey].replaceUser : (duty.isAvailable ? "ยังไม่มีผู้แทน" : duty.replaceUser);
           const isQueued = batchUpdatesQueue[batchKey] ? true : false;
@@ -497,7 +413,7 @@
                     ${replaceInfoHtml}
                   </div>
                 </div>`;
-            });*/
+            });
       
              
         // 💡 3. นำ HTML ที่สมบูรณ์แบบไม่ถูกรบกวนระหว่างลูป ไปใส่ใน container ทีเดียว
