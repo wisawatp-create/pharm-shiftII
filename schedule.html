@@ -376,6 +376,10 @@
                 </span>
               </div>`;
           }
+
+           /* <button onclick="openReplaceModal('${dateKey}', '${duty.approvedUser || ''}', ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
+                <i class="fa-solid fa-user-pen"></i> ลงชื่อแทน
+              </button>*/
         
           let replaceInfoHtml = `
             <div class="text-right flex flex-col items-end gap-1.5">
@@ -386,9 +390,7 @@
                   <p class="text-xs font-bold ${isQueued ? 'text-amber-500' : 'text-teal-600'}">${isQueued ? 'รอการบันทึก' : 'อัปเดตแล้ว'}</p>
                  </div>`
               }
-          /*    <button onclick="openReplaceModal('${dateKey}', '${duty.approvedUser || ''}', ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
-                <i class="fa-solid fa-user-pen"></i> ลงชื่อแทน
-              </button>*/
+         
               <button onclick="deleteShiftData('${dateKey}',  ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
                 <i class="fa-solid fa-trash-can"></i> ลบรายชื่อ
               </button>
