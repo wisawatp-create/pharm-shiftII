@@ -386,8 +386,11 @@
                   <p class="text-xs font-bold ${isQueued ? 'text-amber-500' : 'text-teal-600'}">${isQueued ? 'รอการบันทึก' : 'อัปเดตแล้ว'}</p>
                  </div>`
               }
-              <button onclick="openReplaceModal('${dateKey}', '${duty.approvedUser || ''}', ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
+          /*    <button onclick="openReplaceModal('${dateKey}', '${duty.approvedUser || ''}', ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
                 <i class="fa-solid fa-user-pen"></i> ลงชื่อแทน
+              </button>*/
+              <button onclick="deleteShiftData('${dateKey}',  ${subIndex})" class="bg-[#004b8d] hover:bg-[#003d73] text-white text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs transition-colors cursor-pointer">
+                <i class="fa-solid fa-trash-can"></i> ลบรายชื่อ
               </button>
             </div>`;
         
@@ -660,6 +663,75 @@
             กรุณาเลือกวันที่ในปฏิทินเพื่อดูรายชื่อผู้ปฏิบัติงาน
           </div>`;
       }
+    }
+
+    function deleteShiftData(dateKey, subIndex) {
+      // กล่องยืนยันการลบ
+      Swal.fire({
+        title: 'ยืนยันการลบข้อมูล?',
+        text: "คุณต้องการลบชื่อผู้ปฏิบัติงานในเวรนี้ใช่หรือไม่?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ใช่, ลบข้อมูล',
+        cancelButtonText: 'ยกเลิก'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          
+          // แสดงสถานะกำลังโหลด
+          Swal.fire({
+            title: 'กำลังลบข้อมูล...',
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+    
+          // ส่งคำขอไปยัง Web App / Apps Script
+          const payload = {
+            action: "deleteUser",
+            dutyType: selectedDutyType,
+            dateKey: dateKey,
+            subIndex: subIndex
+          };
+    
+          fetch(GAS_WEB_APP_URL, {
+            method: "POST",
+            body: JSON.stringify(payload)
+          })
+          .then(res => res.json())
+          .then(response => {
+            if (response.success) {
+              // SweetAlert แจ้งเตือนเมื่อลบสำเร็จ
+              Swal.fire({
+                icon: 'success',
+                title: 'สำเร็จ!',
+                text: 'ลบข้อมูลชื่อผู้ปฏิบัติงานเรียบร้อยแล้ว',
+                timer: 2000,
+                showConfirmButton: false
+              }).then(() => {
+                // โหลดตารางใหม่
+                loadScheduleData(); 
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: response.message || 'ไม่สามารถลบข้อมูลได้'
+              });
+            }
+          })
+          .catch(err => {
+            console.error(err);
+            Swal.fire({
+              icon: 'error',
+              title: 'เกิดข้อผิดพลาด',
+              text: 'ไม่สามารถเชื่อมต่อกับระบบได้'
+            });
+          });
+        }
+      });
     }
   })();
 </script>
