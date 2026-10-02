@@ -692,7 +692,7 @@
               Swal.showLoading();
             }
           });
-    
+          const currentRole = getUserRoleSafe();
           // ส่งคำขอไปยัง Web App / Apps Script
           const payload = {
             action: "deleteUser",
