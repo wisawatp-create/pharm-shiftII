@@ -701,7 +701,7 @@
             userRole: currentRole,
             subIndex: subIndex
           };
-    
+          console.log(payload);
           fetch(GAS_WEB_APP_URL, {
             method: "POST",
             body: JSON.stringify(payload)
